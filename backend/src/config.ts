@@ -1,8 +1,6 @@
 export const config = {
-  supabase: {
-    url: process.env.SUPABASE_URL || 'http://localhost:54321',
-    anonKey: process.env.SUPABASE_ANON_KEY || 'mock-anon-key',
-    serviceKey: process.env.SUPABASE_SERVICE_KEY || 'mock-service-key',
+  database: {
+    url: process.env.DATABASE_URL || 'postgresql://localhost:5432/conecta-unsa',
   },
   jwt: {
     secret: process.env.JWT_SECRET || 'conecta-unsa-dev-secret',

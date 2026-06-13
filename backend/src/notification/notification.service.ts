@@ -1,20 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { createClient } from '@supabase/supabase-js';
-import { config } from '../config';
-import type { Job, User } from '../common/types';
-
-const supabase = createClient(config.supabase.url, config.supabase.serviceKey);
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class NotificationService {
-  async notifyCandidates(job: Job): Promise<void> {
-    const { data: users } = await supabase
-      .from('users')
-      .select('*')
-      .eq('carrera', job.carrera_destino)
-      .eq('role', 'EGRESADO');
+  constructor(private readonly prisma: PrismaService) {}
 
-    const candidates = (users as User[]) || [];
+  async notifyCandidates(job: { carrera_destino: string; salario_min: number; salario_max: number }) {
+    const candidates = await this.prisma.user.findMany({
+      where: { carrera: job.carrera_destino, role: 'EGRESADO' },
+    });
 
     for (const user of candidates) {
       console.log(

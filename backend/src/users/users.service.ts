@@ -1,10 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { createClient } from '@supabase/supabase-js';
-import { v4 as uuid } from 'uuid';
-import { config } from '../config';
-import type { User, UserRole } from '../common/types';
-
-const supabase = createClient(config.supabase.url, config.supabase.serviceKey);
+import { PrismaService } from '../prisma/prisma.service';
+import type { UserRole } from '../common/types';
 
 interface CreateUserDto {
   email: string;
@@ -16,56 +12,35 @@ interface CreateUserDto {
 
 @Injectable()
 export class UsersService {
-  async findByEmail(email: string): Promise<User | null> {
-    const { data } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .single<User>();
+  constructor(private readonly prisma: PrismaService) {}
 
-    return data || null;
+  async findByEmail(email: string) {
+    return this.prisma.user.findUnique({ where: { email } });
   }
 
-  async findById(id: string): Promise<User> {
-    const { data } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', id)
-      .single<User>();
-
-    if (!data) {
+  async findById(id: string) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) {
       throw new NotFoundException('Usuario no encontrado');
     }
-    return data;
-  }
-
-  async create(dto: CreateUserDto): Promise<User> {
-    const now = new Date().toISOString();
-    const user: User = {
-      id: uuid(),
-      email: dto.email,
-      name: dto.name,
-      role: dto.role,
-      carrera: dto.carrera,
-      telefono: dto.telefono,
-      created_at: now,
-    };
-
-    const { error } = await supabase.from('users').insert(user);
-    if (error) {
-      throw new Error(`Error al crear usuario: ${error.message}`);
-    }
-
     return user;
   }
 
-  async findByCarrera(carrera: string): Promise<User[]> {
-    const { data } = await supabase
-      .from('users')
-      .select('*')
-      .eq('carrera', carrera)
-      .eq('role', 'EGRESADO');
+  async create(dto: CreateUserDto) {
+    return this.prisma.user.create({
+      data: {
+        email: dto.email,
+        name: dto.name,
+        role: dto.role,
+        carrera: dto.carrera,
+        telefono: dto.telefono,
+      },
+    });
+  }
 
-    return (data as User[]) || [];
+  async findByCarrera(carrera: string) {
+    return this.prisma.user.findMany({
+      where: { carrera, role: 'EGRESADO' },
+    });
   }
 }

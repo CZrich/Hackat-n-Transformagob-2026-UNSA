@@ -3,15 +3,10 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
-import { createClient } from '@supabase/supabase-js';
-import { v4 as uuid } from 'uuid';
-import { config } from '../config';
-import { UsersService } from '../users/users.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { CompaniesService } from '../companies/companies.service';
 import { NotificationService } from '../notification/notification.service';
-import type { Job, JobStatus, UserRole } from '../common/types';
-
-const supabase = createClient(config.supabase.url, config.supabase.serviceKey);
+import type { JobStatus, UserRole } from '../common/types';
 
 interface CreateJobDto {
   ruc: string;
@@ -26,12 +21,12 @@ interface CreateJobDto {
 @Injectable()
 export class JobsService {
   constructor(
-    private readonly usersService: UsersService,
+    private readonly prisma: PrismaService,
     private readonly companiesService: CompaniesService,
     private readonly notificationService: NotificationService,
   ) {}
 
-  async create(dto: CreateJobDto, userId: string): Promise<Job> {
+  async create(dto: CreateJobDto, userId: string) {
     let company = await this.companiesService.findByRuc(dto.ruc);
     if (!company) {
       company = await this.companiesService.create({
@@ -41,71 +36,41 @@ export class JobsService {
       });
     }
 
-    const now = new Date().toISOString();
-    const job: Job = {
-      id: uuid(),
-      title: dto.title,
-      description: dto.description,
-      company_id: company.id,
-      company_name: company.name,
-      carrera_destino: dto.carrera_destino,
-      salario_min: dto.salario_min,
-      salario_max: dto.salario_max,
-      requisitos: dto.requisitos,
-      status: 'PENDING',
-      creado_en: now,
-    };
-
-    const { error } = await supabase.from('jobs').insert(job);
-    if (error) {
-      throw new Error(`Error al crear oferta: ${error.message}`);
-    }
-
-    return job;
+    return this.prisma.job.create({
+      data: {
+        title: dto.title,
+        description: dto.description,
+        company_id: company.id,
+        company_name: company.name,
+        carrera_destino: dto.carrera_destino,
+        salario_min: dto.salario_min,
+        salario_max: dto.salario_max,
+        requisitos: dto.requisitos,
+        created_by_id: userId,
+      },
+    });
   }
 
-  async findByCareer(carrera: string): Promise<Job[]> {
-    const { data } = await supabase
-      .from('jobs')
-      .select('*')
-      .eq('carrera_destino', carrera)
-      .eq('status', 'APPROVED')
-      .order('creado_en', { ascending: false });
-
-    return (data as Job[]) || [];
+  async findByCareer(carrera: string) {
+    return this.prisma.job.findMany({
+      where: { carrera_destino: carrera, status: 'APPROVED' },
+      orderBy: { creado_en: 'desc' },
+    });
   }
 
-  async findPending(): Promise<Job[]> {
-    const { data } = await supabase
-      .from('jobs')
-      .select('*')
-      .eq('status', 'PENDING')
-      .order('creado_en', { ascending: false });
-
-    return (data as Job[]) || [];
+  async findPending() {
+    return this.prisma.job.findMany({
+      where: { status: 'PENDING' },
+      orderBy: { creado_en: 'desc' },
+    });
   }
 
-  async findByCompanyUser(userId: string): Promise<Job[]> {
-    const user = await this.usersService.findById(userId);
-    const company = await this.companiesService.findByUserId(userId);
-
-    if (company) {
-      const { data } = await supabase
-        .from('jobs')
-        .select('*')
-        .eq('company_id', company.id)
-        .order('creado_en', { ascending: false });
-
-      return (data as Job[]) || [];
-    }
-
-    const { data } = await supabase
-      .from('jobs')
-      .select('*')
-      .order('creado_en', { ascending: false })
-      .limit(50);
-
-    return (data as Job[]) || [];
+  async findByCompanyUser(userId: string) {
+    return this.prisma.job.findMany({
+      where: { created_by_id: userId },
+      orderBy: { creado_en: 'desc' },
+      take: 50,
+    });
   }
 
   async updateStatus(
@@ -113,36 +78,25 @@ export class JobsService {
     newStatus: JobStatus,
     userId: string,
     userRole: UserRole,
-  ): Promise<Job> {
+  ) {
     if (userRole !== 'ADMIN') {
       throw new ForbiddenException('Solo el administrador puede moderar ofertas');
     }
 
-    const { data: job } = await supabase
-      .from('jobs')
-      .select('*')
-      .eq('id', id)
-      .single<Job>();
-
+    const job = await this.prisma.job.findUnique({ where: { id } });
     if (!job) {
       throw new NotFoundException('Oferta no encontrada');
     }
 
-    const { error, data: updated } = await supabase
-      .from('jobs')
-      .update({ status: newStatus })
-      .eq('id', id)
-      .select()
-      .single<Job>();
-
-    if (error) {
-      throw new Error(`Error al actualizar oferta: ${error.message}`);
-    }
+    const updated = await this.prisma.job.update({
+      where: { id },
+      data: { status: newStatus },
+    });
 
     if (newStatus === 'APPROVED') {
-      await this.notificationService.notifyCandidates(updated!);
+      await this.notificationService.notifyCandidates(updated);
     }
 
-    return updated!;
+    return updated;
   }
 }

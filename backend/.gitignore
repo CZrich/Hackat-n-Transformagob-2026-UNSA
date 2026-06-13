@@ -4,3 +4,5 @@ build
 .env
 .env.local
 *.tsbuildinfo
+prisma/generated
+prisma/migrations
