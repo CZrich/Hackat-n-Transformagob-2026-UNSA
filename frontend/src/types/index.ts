@@ -9,6 +9,16 @@ export interface User {
   role: UserRole;
   carrera?: string;
   telefono?: string;
+  skills?: string[];
+  ruc?: string;
+  contact_name?: string;
+  rubro?: string;
+  es_verificada?: boolean;
+  es_baneada?: boolean;
+  rating_promedio?: number;
+  total_votos?: number;
+  cv_url?: string;
+  cv_name?: string;
 }
 
 export interface Job {
@@ -23,6 +33,16 @@ export interface Job {
   requisitos: string;
   status: JobStatus;
   creado_en: string;
+  competencias?: string[];
+  vacantes?: number;
+  fecha_inicio?: string;
+  fecha_cierre?: string;
+  lugar?: string;
+  funciones?: string;
+  informacion_adicional?: string;
+  horario?: string;
+  postulantes?: string[]; // array of egresado user IDs
+  rating_empresa?: number;
 }
 
 export interface Company {
@@ -32,3 +52,4 @@ export interface Company {
   rubro: string;
   es_baneada: boolean;
 }
+

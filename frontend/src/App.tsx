@@ -32,7 +32,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route element={<Layout user={user} onLogout={logout} />}>
+        <Route element={<Layout user={user} onLogout={logout} onLogin={login} />}>
           <Route
             element={
               <ProtectedRoute allowedRoles={['EGRESADO', 'EMPLEADOR', 'ADMIN']} userRole={user.role} />
