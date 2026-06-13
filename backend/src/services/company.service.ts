@@ -1,14 +1,17 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
-interface CreateCompanyDto {
+export interface CreateCompanyDto {
   ruc: string;
   name: string;
   rubro: string;
+  direccion?: string;
+  horario?: string;
+  userId: string;
 }
 
 @Injectable()
-export class CompaniesService {
+export class CompanyService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findByRuc(ruc: string) {
@@ -17,9 +20,7 @@ export class CompaniesService {
 
   async findById(id: string) {
     const company = await this.prisma.company.findUnique({ where: { id } });
-    if (!company) {
-      throw new NotFoundException('Empresa no encontrada');
-    }
+    if (!company) throw new NotFoundException('Empresa no encontrada');
     return company;
   }
 
@@ -29,7 +30,14 @@ export class CompaniesService {
         ruc: dto.ruc,
         name: dto.name,
         rubro: dto.rubro,
+        direccion: dto.direccion || '',
+        horario: dto.horario,
+        userId: dto.userId,
       },
     });
+  }
+
+  async findByUserId(userId: string) {
+    return this.prisma.company.findUnique({ where: { userId } });
   }
 }

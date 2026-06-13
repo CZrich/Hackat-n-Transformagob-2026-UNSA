@@ -9,10 +9,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@react-oauth/google": "^0.13.5",
+    "lucide-react": "^0.441.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.0",
-    "lucide-react": "^0.441.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

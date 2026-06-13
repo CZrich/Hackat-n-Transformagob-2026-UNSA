@@ -2,13 +2,14 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CompaniesService } from '../companies/companies.service';
+import { CompanyService } from './company.service';
 import { NotificationService } from '../notification/notification.service';
 import type { JobStatus, UserRole } from '../common/types';
 
-interface CreateJobDto {
+export interface CreateJobDto {
   ruc: string;
   title: string;
   description?: string;
@@ -16,27 +17,46 @@ interface CreateJobDto {
   salario_min: number;
   salario_max: number;
   requisitos: string;
+  funciones?: string;
+  lugar?: string;
+  horario?: string;
+  vacantes?: number;
+  fecha_inicio?: string;
+  fecha_fin?: string;
+  competencias?: string[];
 }
 
 @Injectable()
 export class JobsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly companiesService: CompaniesService,
+    private readonly companyService: CompanyService,
     private readonly notificationService: NotificationService,
   ) {}
 
   async create(dto: CreateJobDto, userId: string) {
-    let company = await this.companiesService.findByRuc(dto.ruc);
+    let company = await this.companyService.findByRuc(dto.ruc);
     if (!company) {
-      company = await this.companiesService.create({
+      company = await this.companyService.create({
         ruc: dto.ruc,
         name: `Empresa RUC ${dto.ruc}`,
         rubro: 'No especificado',
+        direccion: '',
+        userId,
       });
     }
 
-    return this.prisma.job.create({
+    if (!company.es_verificada) {
+      throw new BadRequestException(
+        'Tu empresa no está verificada por ODEEG. No puedes publicar ofertas hasta que un administrador verifique tu RUC.',
+      );
+    }
+
+    const now = new Date();
+    const fechaInicio = dto.fecha_inicio ? new Date(dto.fecha_inicio) : now;
+    const fechaFin = dto.fecha_fin ? new Date(dto.fecha_fin) : new Date(now.getTime() + 30 * 86400000);
+
+    const job = await this.prisma.job.create({
       data: {
         title: dto.title,
         description: dto.description,
@@ -46,9 +66,21 @@ export class JobsService {
         salario_min: dto.salario_min,
         salario_max: dto.salario_max,
         requisitos: dto.requisitos,
+        funciones: dto.funciones || '',
+        lugar: dto.lugar || '',
+        horario: dto.horario || '',
+        cantidad_req: dto.vacantes || 1,
+        fecha_inicio: fechaInicio,
+        fecha_fin: fechaFin,
+        perfil: dto.requisitos,
+        competencias: dto.competencias || [],
+        status: 'APPROVED',
         created_by_id: userId,
       },
     });
+
+    await this.notificationService.notifyCandidates(job);
+    return job;
   }
 
   async findByCareer(carrera: string) {
@@ -66,6 +98,14 @@ export class JobsService {
   }
 
   async findByCompanyUser(userId: string) {
+    const company = await this.prisma.company.findUnique({ where: { userId } });
+    if (company) {
+      return this.prisma.job.findMany({
+        where: { company_id: company.id },
+        orderBy: { creado_en: 'desc' },
+        take: 50,
+      });
+    }
     return this.prisma.job.findMany({
       where: { created_by_id: userId },
       orderBy: { creado_en: 'desc' },
@@ -73,20 +113,13 @@ export class JobsService {
     });
   }
 
-  async updateStatus(
-    id: string,
-    newStatus: JobStatus,
-    userId: string,
-    userRole: UserRole,
-  ) {
+  async updateStatus(id: string, newStatus: JobStatus, userId: string, userRole: UserRole) {
     if (userRole !== 'ADMIN') {
       throw new ForbiddenException('Solo el administrador puede moderar ofertas');
     }
 
     const job = await this.prisma.job.findUnique({ where: { id } });
-    if (!job) {
-      throw new NotFoundException('Oferta no encontrada');
-    }
+    if (!job) throw new NotFoundException('Oferta no encontrada');
 
     const updated = await this.prisma.job.update({
       where: { id },

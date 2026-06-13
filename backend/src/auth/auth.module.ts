@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthController } from './auth.controller';
-import { AuthService } from './auth.service';
+import { AuthService } from '../services/auth.service';
 import { UsersModule } from '../users/users.module';
 import { config } from '../config';
 
@@ -9,8 +9,9 @@ import { config } from '../config';
   imports: [
     UsersModule,
     JwtModule.register({
-      secret: config.jwt.secret,
-      signOptions: { expiresIn: config.jwt.expiration },
+      privateKey: config.jwt.privateKey,
+      publicKey: config.jwt.publicKey,
+      signOptions: { expiresIn: config.jwt.expiration, algorithm: 'RS256' },
     }),
   ],
   controllers: [AuthController],

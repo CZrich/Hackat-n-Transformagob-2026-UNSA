@@ -5,6 +5,8 @@ import { UsersModule } from './users/users.module';
 import { JobsModule } from './jobs/jobs.module';
 import { CompaniesModule } from './companies/companies.module';
 import { NotificationModule } from './notification/notification.module';
+import { AdminModule } from './admin/admin.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -14,6 +16,8 @@ import { NotificationModule } from './notification/notification.module';
     JobsModule,
     CompaniesModule,
     NotificationModule,
+    AdminModule,
+    AiModule,
   ],
 })
 export class AppModule {}

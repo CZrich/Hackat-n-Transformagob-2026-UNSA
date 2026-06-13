@@ -8,7 +8,7 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
-import { JobsService } from './jobs.service';
+import { JobsService } from '../services/jobs.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -29,8 +29,7 @@ export class JobsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('EGRESADO')
   async getMatched(@Req() req: any) {
-    const { carrera } = req.user;
-    return this.jobsService.findByCareer(carrera);
+    return this.jobsService.findByCareer(req.user.carrera);
   }
 
   @Get('pending')

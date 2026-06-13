@@ -8,6 +8,8 @@ interface CreateUserDto {
   role: UserRole;
   carrera?: string;
   telefono?: string;
+  password?: string;
+  skills?: string[];
 }
 
 @Injectable()
@@ -41,6 +43,26 @@ export class UsersService {
   async findByCarrera(carrera: string) {
     return this.prisma.user.findMany({
       where: { carrera, role: 'EGRESADO' },
+    });
+  }
+
+  async updateProfile(userId: string, data: {
+    name?: string;
+    carrera?: string;
+    telefono?: string;
+    skills?: string[];
+    password?: string;
+  }) {
+    const user = await this.findById(userId);
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(data.name && { name: data.name }),
+        ...(data.carrera && { carrera: data.carrera }),
+        ...(data.telefono && { telefono: data.telefono }),
+        ...(data.skills && { skills: data.skills }),
+        ...(data.password && { password: data.password }),
+      },
     });
   }
 }

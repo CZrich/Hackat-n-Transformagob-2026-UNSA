@@ -1,0 +1,104 @@
+{
+  "proyecto": "CONECTA-UNSA",
+  "descripcion": "Plataforma full-stack para emparejar egresados UNSA con ofertas laborales verificadas por ODEEG",
+  "arquitectura": {
+    "monorepo": "pnpm workspaces",
+    "frontend": {
+      "puerto": 5173,
+      "tech": "React 18 + TypeScript + Vite + Tailwind CSS + react-router-dom + lucide-react + @react-oauth/google",
+      "entry": "frontend/src/main.tsx"
+    },
+    "backend": {
+      "puerto": 3000,
+      "tech": "NestJS + TypeScript + Prisma ORM + Supabase PostgreSQL + JWT RS256 + bcryptjs + google-auth-library",
+      "entry": "backend/src/main.ts"
+    },
+    "proxy": "frontend vite.config.ts proxea /api → http://localhost:3000"
+  },
+  "estructura_backend": {
+    "src": {
+      "services/": [
+        "auth.service.ts — login (bcrypt), register (bcrypt), googleLogin (verifyIdToken)",
+        "jobs.service.ts — CRUD ofertas, validacion empresa verificada, notificaciones",
+        "company.service.ts — CRUD empresas (findByRuc, findById, create, findByUserId)"
+      ],
+      "auth/": ["auth.controller.ts", "auth.module.ts"],
+      "jobs/": ["jobs.controller.ts", "jobs.module.ts"],
+      "companies/": ["companies.controller.ts", "companies.module.ts"],
+      "users/": ["users.service.ts", "users.controller.ts", "users.module.ts"],
+      "admin/": ["admin.service.ts", "admin.controller.ts", "admin.module.ts"],
+      "ai/": ["ai.service.ts", "ai.controller.ts", "ai.module.ts"],
+      "notification/": ["notification.service.ts", "notification.module.ts"],
+      "prisma/": ["prisma.service.ts", "prisma.module.ts (Global)"],
+      "common/": {
+        "guards/": ["jwt-auth.guard.ts (RS256)", "roles.guard.ts"],
+        "decorators/": ["roles.decorator.ts"],
+        "types/": ["index.ts (User, Job, Company, UserRole, JobStatus)"]
+      },
+      "config.ts": "configuracion (DB, JWT keys, Google, dominio)"
+    },
+    "prisma/schema.prisma": "Modelos User, Company (1:1), Job con todos los campos"
+  },
+  "estructura_frontend": {
+    "src/": {
+      "pages/": ["Login.tsx", "DashboardEgresado.tsx", "DashboardEmpleador.tsx", "DashboardAdmin.tsx"],
+      "components/": ["Layout.tsx", "ProtectedRoute.tsx", "ui/Button.tsx", "ui/Card.tsx", "ui/Input.tsx"],
+      "hooks/": ["useAuth.ts", "useJobs.ts"],
+      "services/": ["api.ts (HTTP client real)", "mockDb.ts (demo data)"],
+      "config.ts": "VITE_API_URL, VITE_GOOGLE_CLIENT_ID, CARRERAS"
+    }
+  },
+  "endpoints_api": {
+    "POST /api/auth/login": "email + password → bcrypt compare → JWT RS256",
+    "POST /api/auth/register": "crea usuario (y Company si EMPLEADOR) con bcrypt → JWT",
+    "POST /api/auth/google-login": "verifyIdToken o fallback tokeninfo → JWT",
+    "GET /api/jobs/match": "EGRESADO: ofertas APPROVED por carrera",
+    "GET /api/jobs/pending": "ADMIN: ofertas PENDING",
+    "GET /api/jobs/my": "EMPLEADOR: ofertas de su empresa",
+    "POST /api/jobs": "EMPLEADOR: crear oferta (valida es_verificada)",
+    "PATCH /api/jobs/:id/status": "ADMIN: moderar oferta",
+    "GET /api/admin/companies": "ADMIN: lista empresas",
+    "PATCH /api/admin/companies/:id/verify": "ADMIN: verificar empresa + aprobar sus ofertas PENDING",
+    "POST /api/ai/simulate-interview": "EGRESADO: simulacro de entrevista (analisis skills gap)",
+    "GET /api/users/:id": "ADMIN: buscar usuario",
+    "PUT /api/users/profile": "autenticado: actualizar perfil",
+    "POST /api/companies": "crear empresa"
+  },
+  "autenticacion": {
+    "metodo": "JWT RS256 (asimetrico)",
+    "claves": "keys/private.pem + keys/public.pem (generadas con openssl)",
+    "guard": "JwtAuthGuard verifica con publicKey y algorithms: ['RS256']",
+    "payload": "{ sub, email, role, carrera }",
+    "passwords": "bcryptjs (hash con 10 rounds)"
+  },
+  "base_de_datos": {
+    "provider": "Supabase PostgreSQL via Prisma ORM",
+    "seed_admin": "odeeg@unsa.edu.pe / admin123 (ejecutar: cd backend && npx prisma db seed)",
+    "variables_env": {
+      "backend/.env": ["DATABASE_URL", "DIRECT_URL", "JWT_EXPIRATION", "ALLOWED_DOMAIN", "GOOGLE_CLIENT_ID"],
+      "frontend/.env": ["VITE_API_URL", "VITE_ALLOWED_DOMAIN", "VITE_GOOGLE_CLIENT_ID"]
+    }
+  },
+  "problemas_conocidos": {
+    "registro_no_persiste": "El registro de empresa/egresado via UI no se guarda en BD porque falta que el backend corra y la BD esté conectada. El frontend ya llama a POST /api/auth/register",
+    "admin_seed_no_ejecutado": "El seed del admin ODEEG no se ha corrido. Ejecutar: cd backend && npx prisma db seed",
+    "migraciones_pendientes": "Si la BD no tiene las tablas, ejecutar: cd backend && npx prisma db push"
+  },
+  "ultimos_cambios": [
+    "Instalado bcryptjs (@types/bcryptjs) para hashear passwords",
+    "Generadas claves RSA (keys/private.pem, keys/public.pem) para JWT asimetrico",
+    "Creados servicios modulares en src/services/ (auth.service.ts, jobs.service.ts, company.service.ts)",
+    "Actualizados controllers y modules para usar los nuevos servicios",
+    "JwtAuthGuard actualizado para verificar RS256",
+    "Eliminados archivos de servicio antiguos",
+    "Configurado deleteOutDir:true en nest-cli.json para evitar conflictos de cache",
+    "Seed admin creado en prisma/seed.ts con tsx"
+  ],
+  "comandos_para_correr": {
+    "instalar_deps": "cd /home/richard/Escritorio/hackton && pnpm install",
+    "migrar_bd": "cd backend && npx prisma db push",
+    "seed_admin": "cd backend && npx prisma db seed",
+    "iniciar_backend": "cd backend && pnpm start:dev",
+    "iniciar_frontend": "cd frontend && pnpm dev"
+  }
+}

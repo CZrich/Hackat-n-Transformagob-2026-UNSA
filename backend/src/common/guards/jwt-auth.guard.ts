@@ -23,7 +23,9 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     try {
-      const decoded = jwt.verify(parts[1], config.jwt.secret);
+      const decoded = jwt.verify(parts[1], config.jwt.publicKey, {
+        algorithms: ['RS256'],
+      });
       request.user = decoded;
       return true;
     } catch {

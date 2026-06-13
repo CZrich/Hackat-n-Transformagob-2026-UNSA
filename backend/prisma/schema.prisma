@@ -3,9 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL") 
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum UserRole {
@@ -22,38 +22,54 @@ enum JobStatus {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String
-  role      UserRole
-  carrera   String?
-  telefono  String?
+  id         String   @id @default(uuid())
+  email      String   @unique
+  name       String
+  role       UserRole
+  carrera    String?
+  telefono   String?
+  skills     String[]
+  password   String?
   created_at DateTime @default(now())
-  jobs      Job[]    @relation("JobCreatedBy")
+  company    Company?
+  jobs       Job[]    @relation("JobCreatedBy")
 }
 
 model Company {
-  id         String @id @default(uuid())
-  ruc        String @unique
-  name       String
-  rubro      String
-  es_baneada Boolean @default(false)
-  jobs       Job[]
+  id            String   @id @default(uuid())
+  ruc           String   @unique
+  name          String
+  rubro         String
+  direccion     String
+  horario       String?
+  es_verificada Boolean  @default(false)
+  es_baneada    Boolean  @default(false)
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id])
+  jobs          Job[]
 }
 
 model Job {
-  id             String    @id @default(uuid())
-  title          String
-  description    String?
-  company_id     String
-  company_name   String?
+  id              String    @id @default(uuid())
+  title           String
+  description     String?
+  company_id      String
+  company_name    String?
   carrera_destino String
-  salario_min    Int
-  salario_max    Int
-  requisitos     String
-  status         JobStatus @default(PENDING)
-  creado_en      DateTime  @default(now())
-  company        Company   @relation(fields: [company_id], references: [id])
-  created_by_id  String?
-  created_by     User?     @relation("JobCreatedBy", fields: [created_by_id], references: [id])
+  salario_min     Int
+  salario_max     Int
+  fecha_inicio    DateTime
+  fecha_fin       DateTime
+  lugar           String
+  horario         String
+  perfil          String
+  cantidad_req    Int
+  requisitos      String
+  funciones       String
+  competencias    String[]
+  status          JobStatus @default(APPROVED)
+  creado_en       DateTime  @default(now())
+  company         Company   @relation(fields: [company_id], references: [id])
+  created_by_id   String?
+  created_by      User?     @relation("JobCreatedBy", fields: [created_by_id], references: [id])
 }

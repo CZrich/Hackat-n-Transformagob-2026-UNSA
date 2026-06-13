@@ -42,6 +42,28 @@ export const api = {
         method: 'POST',
         body: { token },
       }),
+
+    login: (email: string, password: string) =>
+      request<{ user: User; token: string }>('/api/auth/login', {
+        method: 'POST',
+        body: { email, password },
+      }),
+
+    register: (data: {
+      email: string;
+      password: string;
+      name: string;
+      role: string;
+      carrera?: string;
+      telefono?: string;
+      ruc?: string;
+      contact_name?: string;
+      rubro?: string;
+    }) =>
+      request<{ user: User; token: string }>('/api/auth/register', {
+        method: 'POST',
+        body: data,
+      }),
   },
 
   jobs: {

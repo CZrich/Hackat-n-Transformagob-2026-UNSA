@@ -6,3 +6,4 @@ build
 *.tsbuildinfo
 prisma/generated
 prisma/migrations
+keys/

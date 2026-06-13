@@ -24,4 +24,12 @@ export class NotificationService {
       );
     }
   }
+
+  async notifyCompanyVerified(user: { name?: string | null; telefono?: string | null }) {
+    console.log(
+      `[WhatsApp API] Enviando alerta a ${user.telefono || 'N/D'}: ` +
+        `¡Felicidades ${user.name}! Tu empresa ha sido VERIFICADA por ODEEG. ` +
+        `Ya puedes publicar ofertas laborales en CONECTA-UNSA.`,
+    );
+  }
 }
