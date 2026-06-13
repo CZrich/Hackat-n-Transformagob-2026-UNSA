@@ -27,15 +27,28 @@ export const jobFormSchema = z
       errorMap: () => ({ message: 'Seleccione una carrera destino válida' }),
     }),
     salario_min: z
-      .number({ invalid_type_error: 'Ingrese un número válido' })
-      .positive('El salario mínimo debe ser positivo'),
+      .number({ invalid_type_error: 'Ingrese un número de salario mínimo válido' })
+      .positive('El salario mínimo debe ser mayor a cero'),
     salario_max: z
-      .number({ invalid_type_error: 'Ingrese un número válido' })
-      .positive('El salario máximo debe ser positivo'),
+      .number({ invalid_type_error: 'Ingrese un número de salario máximo válido' })
+      .positive('El salario máximo debe ser mayor a cero'),
     requisitos: z
       .string()
       .min(10, 'Describa al menos 10 caracteres sobre los requisitos')
       .max(1000, 'Los requisitos no pueden exceder 1000 caracteres'),
+    competencias: z
+      .array(z.string())
+      .min(1, 'Debe registrar al menos 1 competencia técnica (tag)'),
+    vacantes: z
+      .number({ invalid_type_error: 'Ingrese un número de vacantes válido' })
+      .int('Debe ser un número entero')
+      .min(1, 'Debe haber al menos 1 vacante'),
+    fecha_inicio: z.string().min(1, 'Ingrese la fecha de inicio de la convocatoria'),
+    fecha_cierre: z.string().min(1, 'Ingrese la fecha de cierre de la convocatoria'),
+    lugar: z.string().min(5, 'Ingrese el lugar de trabajo (mínimo 5 caracteres)'),
+    funciones: z.string().min(10, 'Describa al menos 10 caracteres sobre las funciones principales'),
+    informacion_adicional: z.string().optional(),
+    horario: z.string().optional(),
   })
   .refine((data) => data.salario_max >= data.salario_min, {
     message: 'El salario máximo debe ser mayor o igual al salario mínimo',
@@ -43,3 +56,4 @@ export const jobFormSchema = z
   });
 
 export type JobFormData = z.infer<typeof jobFormSchema>;
+
