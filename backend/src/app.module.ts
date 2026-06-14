@@ -7,6 +7,8 @@ import { CompaniesModule } from './companies/companies.module';
 import { NotificationModule } from './notification/notification.module';
 import { AdminModule } from './admin/admin.module';
 import { AiModule } from './ai/ai.module';
+import { RatingsModule } from './ratings/ratings.module';
+import { StorageModule } from './storage/storage.module';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { AiModule } from './ai/ai.module';
     NotificationModule,
     AdminModule,
     AiModule,
+    RatingsModule,
+    StorageModule,
   ],
 })
 export class AppModule {}

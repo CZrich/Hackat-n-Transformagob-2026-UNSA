@@ -11,7 +11,7 @@ export class AdminService {
 
   async listCompanies() {
     return this.prisma.company.findMany({
-      include: { user: { select: { email: true, telefono: true, name: true } } },
+      include: { user: { select: { email: true, name: true } } },
       orderBy: { name: 'asc' },
     });
   }

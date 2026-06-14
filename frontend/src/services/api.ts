@@ -1,5 +1,5 @@
 import { API_URL } from '../config';
-import type { User, Job } from '../types';
+import type { User, Job, Application, MatchDetail, GraduateProfile } from '../types';
 
 type RequestOptions = {
   method?: string;
@@ -92,6 +92,8 @@ export const api = {
 
     getMatched: () => request<Job[]>('/api/jobs/match'),
 
+    getMyApplications: () => request<Application[]>('/api/jobs/my-applications'),
+
     getPending: () => request<Job[]>('/api/jobs/pending'),
 
     getMyHistory: () => request<Job[]>('/api/jobs/my'),
@@ -102,10 +104,51 @@ export const api = {
         body: { status },
       }),
 
+    updateEmployerJobStatus: (id: string, status: string) =>
+      request<Job>(`/api/jobs/${id}/employer-status`, {
+        method: 'PATCH',
+        body: { status },
+      }),
+
+    deleteJob: (id: string) =>
+      request<any>(`/api/jobs/${id}`, { method: 'DELETE' }),
+
     apply: (id: string) =>
       request<any>(`/api/jobs/${id}/apply`, {
         method: 'POST',
       }),
+
+    updateApplicationStatus: (applicationId: string, status: string) =>
+      request<any>(`/api/jobs/applications/${applicationId}/status`, {
+        method: 'PATCH',
+        body: { status },
+      }),
+
+    getMatchDetail: (id: string) =>
+      request<MatchDetail>(`/api/jobs/${id}/match-detail`),
+  },
+
+  ratings: {
+    rateCompany: (companyId: string, score: number, comment?: string) =>
+      request<any>('/api/ratings', {
+        method: 'POST',
+        body: { companyId, score, comment },
+      }),
+
+    getCompanyRating: (companyId: string) =>
+      request<any>(`/api/ratings/company/${companyId}`),
+
+    getMyRatings: () => request<any[]>('/api/ratings/my'),
+  },
+
+  graduateProfile: {
+    update: (data: Partial<GraduateProfile>) =>
+      request<GraduateProfile>('/api/users/graduate-profile', {
+        method: 'PUT',
+        body: data,
+      }),
+
+    get: () => request<GraduateProfile>('/api/users/graduate-profile'),
   },
 
   admin: {

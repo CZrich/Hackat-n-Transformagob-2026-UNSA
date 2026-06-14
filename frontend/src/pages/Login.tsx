@@ -152,7 +152,6 @@ export default function Login({ onLogin }: LoginProps) {
           contact_name: undefined,
           rubro: undefined,
           telefono: undefined,
-          skills: role === 'EGRESADO' ? ['TypeScript'] : [],
           es_verificada: false,
           es_baneada: false
         };

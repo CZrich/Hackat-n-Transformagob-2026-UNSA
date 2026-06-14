@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../services/api';
-// types not needed anymore as useQuery handles it via api
 
 import { useAuth } from './useAuth';
 
@@ -12,6 +11,12 @@ export function useJobs() {
   const matchedQuery = useQuery({
     queryKey: ['jobs', 'matched'],
     queryFn: () => api.jobs.getMatched(),
+    enabled: role === 'EGRESADO',
+  });
+
+  const myApplicationsQuery = useQuery({
+    queryKey: ['jobs', 'my-applications'],
+    queryFn: () => api.jobs.getMyApplications(),
     enabled: role === 'EGRESADO',
   });
 
@@ -48,13 +53,39 @@ export function useJobs() {
     },
   });
 
+  const updateEmployerJobStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) => api.jobs.updateEmployerJobStatus(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+    },
+  });
+
+  const deleteJobMutation = useMutation({
+    mutationFn: (id: string) => api.jobs.deleteJob(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+    },
+  });
+
+  const updateApplicationStatusMutation = useMutation({
+    mutationFn: ({ applicationId, status }: { applicationId: string; status: string }) =>
+      api.jobs.updateApplicationStatus(applicationId, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+    },
+  });
+
   return {
     matchedQuery,
+    myApplicationsQuery,
     pendingQuery,
     historyQuery,
     updateStatus: updateStatusMutation.mutateAsync,
     createJob: createJobMutation.mutateAsync,
     applyJob: applyJobMutation.mutateAsync,
+    updateEmployerJobStatus: updateEmployerJobStatusMutation.mutateAsync,
+    deleteJob: deleteJobMutation.mutateAsync,
+    updateApplicationStatus: updateApplicationStatusMutation.mutateAsync,
   };
 }
 

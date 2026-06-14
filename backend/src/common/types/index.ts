@@ -1,15 +1,17 @@
 export type UserRole = 'EGRESADO' | 'EMPLEADOR' | 'ADMIN';
 
-export type JobStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'SPAM';
+export type JobStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'SPAM' | 'CLOSED';
+
+export type ApplicationStatus = 'PENDING' | 'REVIEWED' | 'ACCEPTED' | 'REJECTED' | 'CV_REVIEWED' | 'IN_PROCESS' | 'FINALIST' | 'PROCESS_FINISHED';
 
 export interface User {
   id: string;
   email: string;
   name: string;
   role: UserRole;
+  created_at?: string;
   carrera?: string;
   telefono?: string;
-  created_at?: string;
   ruc?: string;
   rubro?: string;
   es_verificada?: boolean;

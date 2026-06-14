@@ -11,12 +11,13 @@ export class AiService {
       throw new NotFoundException('Oferta no encontrada');
     }
 
+    const profile = await this.prisma.graduateProfile.findUnique({ where: { userId } });
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException('Usuario no encontrado');
     }
 
-    const userSkills = user.skills || [];
+    const userSkills = profile?.skills || [];
     const requiredSkills = job.competencias || [];
     const missingSkills = requiredSkills.filter(
       (req) => !userSkills.some((us) => us.toLowerCase() === req.toLowerCase()),
@@ -25,12 +26,12 @@ export class AiService {
       userSkills.some((us) => us.toLowerCase() === req.toLowerCase()),
     );
 
-    const questions = this.generateQuestions(job, user, missingSkills);
+    const questions = this.generateQuestions(job, user, missingSkills, profile?.carrera || '');
 
     return {
       jobTitle: job.title,
       companyName: job.company_name,
-      carrera: user.carrera,
+      carrera: profile?.carrera || '',
       match: {
         total: requiredSkills.length,
         matched: matchedSkills.length,
@@ -48,7 +49,7 @@ export class AiService {
     };
   }
 
-  private generateQuestions(job: any, _user: any, missingSkills: string[]) {
+  private generateQuestions(job: any, _user: any, missingSkills: string[], _carrera?: string) {
     const baseQuestions = [
       {
         id: 'q1',

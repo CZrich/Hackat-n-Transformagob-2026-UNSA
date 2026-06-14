@@ -6,13 +6,14 @@ export class NotificationService {
   constructor(private readonly prisma: PrismaService) {}
 
   async notifyCandidates(job: { carrera_destino: string; salario_min: number; salario_max: number }) {
-    const candidates = await this.prisma.user.findMany({
-      where: { carrera: job.carrera_destino, role: 'EGRESADO' },
+    const candidates = await this.prisma.graduateProfile.findMany({
+      where: { carrera: job.carrera_destino },
+      include: { user: true },
     });
 
-    for (const user of candidates) {
+    for (const profile of candidates) {
       console.log(
-        `[WhatsApp API] Enviando alerta a ${user.telefono}: ` +
+        `[WhatsApp API] Enviando alerta a ${profile.telefono || 'N/D'}: ` +
           `Nueva oferta de trabajo para la carrera de ${job.carrera_destino} ` +
           `con sueldo S/ ${job.salario_min} - S/ ${job.salario_max}`,
       );

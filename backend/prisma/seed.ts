@@ -23,8 +23,6 @@ async function main() {
       name: 'Administrador ODEEG',
       role: 'ADMIN',
       password: hashedPassword,
-      telefono: '958473621',
-      skills: [],
     },
   });
 

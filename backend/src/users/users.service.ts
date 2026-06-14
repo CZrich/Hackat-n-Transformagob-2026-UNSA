@@ -19,14 +19,14 @@ export class UsersService {
   async findByEmail(email: string) {
     return this.prisma.user.findUnique({
       where: { email },
-      include: { company: true },
+      include: { company: true, profile: true },
     });
   }
 
   async findById(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
-      include: { company: true },
+      include: { company: true, profile: true },
     });
     if (!user) {
       throw new NotFoundException('Usuario no encontrado');
@@ -35,20 +35,32 @@ export class UsersService {
   }
 
   async create(dto: CreateUserDto) {
-    return this.prisma.user.create({
+    const user = await this.prisma.user.create({
       data: {
         email: dto.email,
         name: dto.name,
         role: dto.role,
-        carrera: dto.carrera,
-        telefono: dto.telefono,
       },
     });
+
+    if (dto.role === 'EGRESADO') {
+      await this.prisma.graduateProfile.create({
+        data: {
+          userId: user.id,
+          carrera: dto.carrera || '',
+          telefono: dto.telefono || '',
+          skills: dto.skills || [],
+        },
+      });
+    }
+
+    return user;
   }
 
   async findByCarrera(carrera: string) {
-    return this.prisma.user.findMany({
-      where: { carrera, role: 'EGRESADO' },
+    return this.prisma.graduateProfile.findMany({
+      where: { carrera },
+      include: { user: true },
     });
   }
 
@@ -60,13 +72,20 @@ export class UsersService {
     password?: string;
     ruc?: string;
     rubro?: string;
+    direccion?: string;
+    horario?: string;
     cv_name?: string;
     cv_url?: string;
     bio?: string;
+    linkedin_url?: string;
+    portfolio_url?: string;
+    education?: string;
+    work_experience?: string;
+    certifications?: string;
+    languages?: string;
   }) {
     const user = await this.findById(userId);
     
-    // Validate if changing RUC that it's not taken
     if (data.ruc && data.ruc !== user.company?.ruc) {
       const existing = await this.prisma.company.findUnique({ where: { ruc: data.ruc } });
       if (existing) throw new ConflictException('El RUC ya está registrado');
@@ -76,34 +95,121 @@ export class UsersService {
       where: { id: userId },
       data: {
         ...(data.name && { name: data.name }),
-        ...(data.carrera && { carrera: data.carrera }),
-        ...(data.telefono && { telefono: data.telefono }),
-        ...(data.skills && { skills: data.skills }),
         ...(data.password && { password: data.password }),
-        ...(data.cv_name !== undefined && { cv_name: data.cv_name }),
-        ...(data.cv_url !== undefined && { cv_url: data.cv_url }),
-        ...(data.bio !== undefined && { bio: data.bio }),
       },
     });
 
     if (user.role === 'EMPLEADOR') {
       await this.prisma.company.upsert({
-        where: { userId: userId },
+        where: { userId },
         update: {
           ...(data.name && { name: data.name }),
           ...(data.ruc && { ruc: data.ruc }),
           ...(data.rubro && { rubro: data.rubro }),
+          ...(data.direccion !== undefined ? { direccion: data.direccion } : {}),
+          ...(data.horario !== undefined ? { horario: data.horario } : {}),
         },
         create: {
           ruc: data.ruc || `TEMP-${Date.now()}`,
           name: data.name || user.name,
           rubro: data.rubro || 'No especificado',
-          direccion: '',
-          userId: userId,
+          direccion: data.direccion || '',
+          horario: data.horario || '',
+          userId,
+        },
+      });
+    }
+
+    if (user.role === 'EGRESADO') {
+      await this.prisma.graduateProfile.upsert({
+        where: { userId },
+        update: {
+          ...(data.carrera !== undefined ? { carrera: data.carrera } : {}),
+          ...(data.telefono !== undefined ? { telefono: data.telefono } : {}),
+          ...(data.skills !== undefined ? { skills: data.skills } : {}),
+          ...(data.cv_name !== undefined ? { cv_name: data.cv_name } : {}),
+          ...(data.cv_url !== undefined ? { cv_url: data.cv_url } : {}),
+          ...(data.bio !== undefined ? { bio: data.bio } : {}),
+          ...(data.linkedin_url !== undefined ? { linkedin_url: data.linkedin_url } : {}),
+          ...(data.portfolio_url !== undefined ? { portfolio_url: data.portfolio_url } : {}),
+          ...(data.education !== undefined ? { education: data.education } : {}),
+          ...(data.work_experience !== undefined ? { experience: data.work_experience } : {}),
+          ...(data.certifications !== undefined ? { certifications: data.certifications } : {}),
+          ...(data.languages !== undefined ? { languages: data.languages } : {}),
+        },
+        create: {
+          userId,
+          carrera: data.carrera || '',
+          telefono: data.telefono || '',
+          skills: data.skills || [],
+          cv_name: data.cv_name || '',
+          cv_url: data.cv_url || '',
+          bio: data.bio || '',
+          linkedin_url: data.linkedin_url || '',
+          portfolio_url: data.portfolio_url || '',
+          education: data.education || '',
+          experience: data.work_experience || '',
+          certifications: data.certifications || '',
+          languages: data.languages || '',
         },
       });
     }
 
     return updatedUser;
+  }
+
+  async updateGraduateProfile(userId: string, data: {
+    summary?: string;
+    carrera?: string;
+    telefono?: string;
+    skills?: string[];
+    cv_name?: string;
+    cv_url?: string;
+    bio?: string;
+    education?: string;
+    experience?: string;
+    certifications?: string;
+    languages?: string;
+    linkedin_url?: string;
+    portfolio_url?: string;
+  }) {
+    return this.prisma.graduateProfile.upsert({
+      where: { userId },
+      update: {
+        ...(data.carrera !== undefined ? { carrera: data.carrera } : {}),
+        ...(data.telefono !== undefined ? { telefono: data.telefono } : {}),
+        ...(data.skills !== undefined ? { skills: data.skills } : {}),
+        ...(data.cv_name !== undefined ? { cv_name: data.cv_name } : {}),
+        ...(data.cv_url !== undefined ? { cv_url: data.cv_url } : {}),
+        ...(data.bio !== undefined ? { bio: data.bio } : {}),
+        ...(data.summary !== undefined ? { summary: data.summary } : {}),
+        ...(data.education !== undefined ? { education: data.education } : {}),
+        ...(data.experience !== undefined ? { experience: data.experience } : {}),
+        ...(data.certifications !== undefined ? { certifications: data.certifications } : {}),
+        ...(data.languages !== undefined ? { languages: data.languages } : {}),
+        ...(data.linkedin_url !== undefined ? { linkedin_url: data.linkedin_url } : {}),
+        ...(data.portfolio_url !== undefined ? { portfolio_url: data.portfolio_url } : {}),
+      },
+      create: {
+        userId,
+        carrera: data.carrera || '',
+        telefono: data.telefono || '',
+        skills: data.skills || [],
+        cv_name: data.cv_name || '',
+        cv_url: data.cv_url || '',
+        bio: data.bio || '',
+        summary: data.summary || '',
+        education: data.education || '',
+        experience: data.experience || '',
+        certifications: data.certifications || '',
+        languages: data.languages || '',
+        linkedin_url: data.linkedin_url || '',
+        portfolio_url: data.portfolio_url || '',
+      },
+    });
+  }
+
+  async getGraduateProfile(userId: string) {
+    return this.prisma.graduateProfile.findUnique({ where: { userId } });
   }
 }

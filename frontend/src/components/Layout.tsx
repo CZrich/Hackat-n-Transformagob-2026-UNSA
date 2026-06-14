@@ -1,12 +1,10 @@
 import { Outlet, useNavigate } from 'react-router-dom';
 import { LogOut, Building2, GraduationCap, Shield } from 'lucide-react';
 import type { User } from '../types';
-import DemoSimulationDrawer from './DemoSimulationDrawer';
 
 interface LayoutProps {
   user: User;
   onLogout: () => void;
-  onLogin: (user: User, token: string) => void;
 }
 
 function roleIcon(role: string) {
@@ -35,7 +33,7 @@ function roleLabel(role: string) {
   }
 }
 
-export default function Layout({ user, onLogout, onLogin }: LayoutProps) {
+export default function Layout({ user, onLogout }: LayoutProps) {
   const navigate = useNavigate();
 
   return (
@@ -74,8 +72,6 @@ export default function Layout({ user, onLogout, onLogin }: LayoutProps) {
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         <Outlet />
       </main>
-      
-      <DemoSimulationDrawer onLogin={onLogin} currentRole={user.role} />
 
       <footer className="bg-white border-t border-gray-200 py-4">
         <div className="max-w-7xl mx-auto px-4 text-center text-xs text-gray-400">

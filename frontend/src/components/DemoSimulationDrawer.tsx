@@ -81,7 +81,6 @@ export default function DemoSimulationDrawer({ onLogin, currentRole }: DemoSimul
       role: profile.role,
       carrera: profile.carrera,
       telefono: profile.telefono,
-      skills: profile.skills
     };
     
     // Save to localStorage

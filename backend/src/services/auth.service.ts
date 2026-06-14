@@ -21,25 +21,23 @@ export class AuthService {
     private readonly prisma: PrismaService,
   ) {}
 
-  private signToken(user: {
-    id: string;
-    email: string;
-    role: string;
-    carrera: string | null;
-  }): string {
+  private async signToken(userId: string, email: string, role: string): Promise<string> {
+    let carrera: string | null = null;
+    if (role === 'EGRESADO') {
+      const profile = await this.prisma.graduateProfile.findUnique({ where: { userId } });
+      carrera = profile?.carrera || null;
+    }
     return this.jwtService.sign(
-      { sub: user.id, email: user.email, role: user.role, carrera: user.carrera },
+      { sub: userId, email, role, carrera },
       { algorithm: 'RS256' },
     );
   }
 
-  private mapUser(user: {
+  private async mapUser(user: {
     id: string;
     email: string;
     name: string;
     role: string;
-    carrera: string | null;
-    telefono: string | null;
     created_at: Date;
     company?: {
       ruc: string;
@@ -48,14 +46,21 @@ export class AuthService {
       es_verificada: boolean;
       es_baneada: boolean;
     } | null;
-  }): User {
+  }): Promise<User> {
+    let carrera: string | undefined;
+    let telefono: string | undefined;
+    if (user.role === 'EGRESADO') {
+      const profile = await this.prisma.graduateProfile.findUnique({ where: { userId: user.id } });
+      carrera = profile?.carrera ?? undefined;
+      telefono = profile?.telefono ?? undefined;
+    }
     return {
       id: user.id,
       email: user.email,
       name: user.name,
       role: user.role as UserRole,
-      carrera: user.carrera ?? undefined,
-      telefono: user.telefono ?? undefined,
+      carrera,
+      telefono,
       created_at: user.created_at.toISOString(),
       ...(user.company && {
         ruc: user.company.ruc,
@@ -79,8 +84,8 @@ export class AuthService {
     if (!valid) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
-    const token = this.signToken(user);
-    return { user: this.mapUser(user), token };
+    const token = await this.signToken(user.id, user.email, user.role);
+    return { user: await this.mapUser(user), token };
   }
 
   async register(data: {
@@ -107,11 +112,19 @@ export class AuthService {
         password: hashedPassword,
         name: data.name,
         role: data.role,
-        carrera: data.carrera,
-        telefono: data.telefono,
-        skills: [],
       },
     });
+
+    if (data.role === 'EGRESADO') {
+      await this.prisma.graduateProfile.create({
+        data: {
+          userId: user.id,
+          carrera: data.carrera || '',
+          telefono: data.telefono || '',
+          skills: [],
+        },
+      });
+    }
 
     let createdCompany = null;
     if (data.role === 'EMPLEADOR' && data.ruc) {
@@ -127,8 +140,8 @@ export class AuthService {
       });
     }
 
-    const token = this.signToken(user);
-    return { user: this.mapUser({ ...user, company: createdCompany }), token };
+    const token = await this.signToken(user.id, user.email, user.role);
+    return { user: await this.mapUser({ ...user, company: createdCompany }), token };
   }
 
   async googleLogin(googleToken: string): Promise<{ user: User; token: string }> {
@@ -173,17 +186,25 @@ export class AuthService {
           email: payload.email,
           name: payload.name,
           role,
-          carrera: role === 'EGRESADO' ? 'Ingeniería de Sistemas' : undefined,
-          telefono: '+51900000000',
-          skills: [],
         },
       });
+
+      if (role === 'EGRESADO') {
+        await this.prisma.graduateProfile.create({
+          data: {
+            userId: newUser.id,
+            carrera: 'Ingeniería de Sistemas',
+            telefono: '+51900000000',
+            skills: [],
+          },
+        });
+      }
 
       let company = null;
       if (role === 'EMPLEADOR') {
         company = await this.prisma.company.create({
           data: {
-            ruc: `TEMP-${Date.now()}`, // Temporary RUC that they will replace during onboarding complete
+            ruc: `TEMP-${Date.now()}`,
             name: payload.name,
             rubro: 'No especificado',
             direccion: '',
@@ -196,7 +217,7 @@ export class AuthService {
       user = { ...newUser, company };
     }
 
-    const token = this.signToken(user);
-    return { user: this.mapUser(user), token };
+    const token = await this.signToken(user.id, user.email, user.role);
+    return { user: await this.mapUser(user), token };
   }
 }

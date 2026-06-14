@@ -1,12 +1,13 @@
-import { type InputHTMLAttributes, forwardRef } from 'react';
+import { type InputHTMLAttributes, forwardRef, type ReactNode } from 'react';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
+  icon?: ReactNode;
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, className = '', ...props }, ref) => {
+  ({ label, error, icon, className = '', ...props }, ref) => {
     return (
       <div className="w-full">
         {label && (
@@ -14,11 +15,14 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             {label}
           </label>
         )}
-        <input
-          ref={ref}
-          className={`block w-full rounded-lg border px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-unsa-500 focus:border-unsa-500 ${error ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'} ${className}`}
-          {...props}
-        />
+        <div className="relative">
+          {icon && <div className="absolute left-3 top-1/2 -translate-y-1/2">{icon}</div>}
+          <input
+            ref={ref}
+            className={`block w-full rounded-lg border px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-unsa-500 focus:border-unsa-500 ${icon ? 'pl-9' : ''} ${error ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'} ${className}`}
+            {...props}
+          />
+        </div>
         {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
       </div>
     );

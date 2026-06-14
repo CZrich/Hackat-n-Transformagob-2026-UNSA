@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CompanyService } from './company.service';
 import { NotificationService } from '../notification/notification.service';
-import type { JobStatus, UserRole } from '../common/types';
+import type { JobStatus, UserRole, ApplicationStatus } from '../common/types';
 
 export interface CreateJobDto {
   ruc: string;
@@ -82,16 +82,20 @@ export class JobsService {
     return job;
   }
 
-  async findMatched(userId: string, carrera: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { skills: true }
+  async findMatched(userId: string, carrera?: string) {
+    const profile = await this.prisma.graduateProfile.findUnique({
+      where: { userId },
+      select: { skills: true, carrera: true }
     });
 
-    const userSkills = (user?.skills || []).map(s => s.toLowerCase());
+    const userSkills = (profile?.skills || []).map(s => s.toLowerCase());
+    const userCarrera = carrera || profile?.carrera;
 
     const jobs = await this.prisma.job.findMany({
-      where: { carrera_destino: carrera, status: 'APPROVED' },
+      where: {
+        ...(userCarrera ? { carrera_destino: userCarrera } : {}),
+        status: 'APPROVED',
+      },
       orderBy: { creado_en: 'desc' },
       include: {
         applications: {
@@ -129,7 +133,7 @@ export class JobsService {
         take: 50,
         include: {
           applications: {
-            include: { user: true }
+            include: { user: { include: { profile: true } } }
           }
         }
       });
@@ -140,7 +144,7 @@ export class JobsService {
       take: 50,
       include: {
         applications: {
-          include: { user: true }
+          include: { user: { include: { profile: true } } }
         }
       }
     });
@@ -183,5 +187,109 @@ export class JobsService {
         status: 'PENDING',
       }
     });
+  }
+
+  async findMyApplications(userId: string) {
+    return this.prisma.application.findMany({
+      where: { userId },
+      include: {
+        job: {
+          include: {
+            company: true
+          }
+        }
+      },
+      orderBy: { created_at: 'desc' }
+    });
+  }
+
+  async updateEmployerJobStatus(jobId: string, newStatus: string, userId: string) {
+    const job = await this.prisma.job.findUnique({ where: { id: jobId } });
+    if (!job) throw new NotFoundException('Oferta no encontrada');
+
+    const company = await this.prisma.company.findUnique({ where: { userId } });
+    if (!company || job.company_id !== company.id) {
+      throw new ForbiddenException('No tienes permisos para modificar esta oferta');
+    }
+
+    const validStatuses = ['APPROVED', 'CLOSED'];
+    if (!validStatuses.includes(newStatus)) {
+      throw new BadRequestException('Estado no válido. Use: APPROVED, CLOSED');
+    }
+
+    return this.prisma.job.update({
+      where: { id: jobId },
+      data: { status: newStatus as JobStatus },
+    });
+  }
+
+  async deleteJob(jobId: string, userId: string) {
+    const job = await this.prisma.job.findUnique({ where: { id: jobId } });
+    if (!job) throw new NotFoundException('Oferta no encontrada');
+
+    const company = await this.prisma.company.findUnique({ where: { userId } });
+    if (!company || job.company_id !== company.id) {
+      throw new ForbiddenException('No tienes permisos para eliminar esta oferta');
+    }
+
+    await this.prisma.application.deleteMany({ where: { jobId } });
+    return this.prisma.job.delete({ where: { id: jobId } });
+  }
+
+  async updateApplicationStatus(applicationId: string, newStatus: ApplicationStatus, employerUserId: string) {
+    const application = await this.prisma.application.findUnique({
+      where: { id: applicationId },
+      include: { job: { include: { company: true } } }
+    });
+    if (!application) throw new NotFoundException('Postulación no encontrada');
+
+    const company = await this.prisma.company.findUnique({ where: { userId: employerUserId } });
+    if (!company || application.job.company_id !== company.id) {
+      throw new ForbiddenException('No tienes permisos para modificar esta postulación');
+    }
+
+    return this.prisma.application.update({
+      where: { id: applicationId },
+      data: { status: newStatus },
+    });
+  }
+
+  async getMatchDetail(jobId: string, userId: string) {
+    const profile = await this.prisma.graduateProfile.findUnique({
+      where: { userId },
+      select: { skills: true }
+    });
+
+    const job = await this.prisma.job.findUnique({ where: { id: jobId } });
+    if (!job) throw new NotFoundException('Oferta no encontrada');
+
+    const userSkills = (profile?.skills || []).map(s => s.toLowerCase());
+    const jobSkills = (job.competencias || []).map(s => s.toLowerCase());
+
+    const matched: string[] = [];
+    const missing: string[] = [];
+
+    for (const js of jobSkills) {
+      if (userSkills.includes(js)) {
+        matched.push(js);
+      } else {
+        missing.push(js);
+      }
+    }
+
+    const extra = userSkills.filter(s => !jobSkills.includes(s));
+
+    const matchPercentage = jobSkills.length > 0
+      ? Math.round((matched.length / jobSkills.length) * 100)
+      : 100;
+
+    return {
+      matchPercentage,
+      matchedSkills: matched,
+      missingSkills: missing,
+      extraSkills: extra,
+      totalJobSkills: jobSkills.length,
+      totalUserSkills: userSkills.length,
+    };
   }
 }

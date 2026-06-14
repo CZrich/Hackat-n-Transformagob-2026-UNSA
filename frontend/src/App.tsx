@@ -38,7 +38,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
       <Routes>
-        <Route element={<Layout user={user} onLogout={logout} onLogin={login} />}>
+          <Route element={<Layout user={user} onLogout={logout} />}>
           <Route
             element={
               <ProtectedRoute allowedRoles={['EGRESADO', 'EMPLEADOR', 'ADMIN']} userRole={user.role} />

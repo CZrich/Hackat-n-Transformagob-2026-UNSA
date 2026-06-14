@@ -19,6 +19,7 @@ enum JobStatus {
   APPROVED
   REJECTED
   SPAM
+  CLOSED
 }
 
 enum ApplicationStatus {
@@ -26,38 +27,76 @@ enum ApplicationStatus {
   REVIEWED
   ACCEPTED
   REJECTED
+  CV_REVIEWED
+  IN_PROCESS
+  FINALIST
+  PROCESS_FINISHED
 }
 
 model User {
-  id         String   @id @default(uuid())
-  email      String   @unique
-  name       String
-  role       UserRole
-  carrera    String?
-  telefono   String?
-  skills     String[]
-  password   String?
-  cv_name    String?
-  cv_url     String?
-  bio        String?
-  created_at   DateTime      @default(now())
+  id           String            @id @default(uuid())
+  email        String            @unique
+  name         String
+  role         UserRole
+  password     String?
+  created_at   DateTime          @default(now())
   company      Company?
-  jobs         Job[]         @relation("JobCreatedBy")
+  jobs         Job[]             @relation("JobCreatedBy")
   applications Application[]
+  profile      GraduateProfile?
+  ratings_given CompanyRating[]
 }
 
 model Company {
-  id            String   @id @default(uuid())
-  ruc           String   @unique
+  id            String          @id @default(uuid())
+  ruc           String          @unique
   name          String
   rubro         String
   direccion     String
   horario       String?
-  es_verificada Boolean  @default(false)
-  es_baneada    Boolean  @default(false)
-  userId        String   @unique
-  user          User     @relation(fields: [userId], references: [id])
+  es_verificada Boolean         @default(false)
+  es_baneada    Boolean         @default(false)
+  userId        String          @unique
+  user          User            @relation(fields: [userId], references: [id])
   jobs          Job[]
+  ratings       CompanyRating[]
+  rating_promedio Float         @default(0)
+  total_votos     Int           @default(0)
+}
+
+model CompanyRating {
+  id        String   @id @default(uuid())
+  companyId String
+  userId    String
+  score     Int
+  comment   String?
+  created_at DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([companyId, userId])
+}
+
+model GraduateProfile {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id])
+  carrera         String?
+  telefono        String?
+  skills          String[]
+  cv_name         String?
+  cv_url          String?
+  bio             String?
+  summary         String?
+  education       String?
+  experience      String?
+  certifications  String?
+  languages       String?
+  linkedin_url    String?
+  portfolio_url   String?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
 }
 
 model Job {
