@@ -156,12 +156,26 @@ export const api = {
 
   admin: {
     listCompanies: () => request<User[]>('/api/admin/companies'),
-    verifyCompany: (id: string) =>
-      request<any>(`/api/admin/companies/${id}/verify`, { method: 'PATCH' }),
+    verifyCompany: (id: string, es_verificada: boolean) =>
+      request<any>(`/api/admin/companies/${id}/verify`, {
+        method: 'PATCH',
+        body: { es_verificada },
+      }),
     banCompany: (id: string, es_baneada: boolean) =>
       request<any>(`/api/admin/companies/${id}/ban`, {
         method: 'PATCH',
         body: { es_baneada },
       }),
+  },
+
+  events: {
+    list: () => request<any[]>('/api/events'),
+    create: (data: any) =>
+      request<any>('/api/events', {
+        method: 'POST',
+        body: data,
+      }),
+    delete: (id: string) =>
+      request<any>(`/api/events/${id}`, { method: 'DELETE' }),
   },
 };

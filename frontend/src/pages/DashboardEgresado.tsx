@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Briefcase,
   DollarSign,
@@ -23,7 +24,14 @@ import {
   Linkedin,
   Globe,
   Loader,
-  RefreshCw
+  RefreshCw,
+  Link as LinkIcon,
+  ChevronRight,
+  Bot,
+  Mic,
+  Cpu,
+  Bell,
+  MessageCircle
 } from 'lucide-react';
 
 import { useJobs } from '../hooks/useJobs';
@@ -57,6 +65,8 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
   const [activeTab, setActiveTab] = useState<'FEED' | 'APPLICATIONS' | 'PROFILE'>('FEED');
   const [, setGraduateProfile] = useState<GraduateProfile | null>(null);
   const [myRatings, setMyRatings] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
+  const [selectedEventForModal, setSelectedEventForModal] = useState<any | null>(null);
 
   const [profileForm, setProfileForm] = useState({
     name: user?.name || '',
@@ -77,7 +87,20 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
 
   const [newSkill, setNewSkill] = useState('');
   const [selectedJobForModal, setSelectedJobForModal] = useState<Job | null>(null);
+  const [selectedJobForInterview, setSelectedJobForInterview] = useState<Job | null>(null);
+  const [interviewStep, setInterviewStep] = useState(0); // 0: loading, 1: chat
+  const [chatMessages, setChatMessages] = useState<{sender: 'ai'|'user', text: string}[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isAiTyping, setIsAiTyping] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages, isAiTyping]);
+
   const [appliedJobs, setAppliedJobs] = useState<string[]>([]);
+  const [viewedJobs, setViewedJobs] = useState<string[]>([]);
+  const [whatsappNotifs, setWhatsappNotifs] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
   const [matchDetail, setMatchDetail] = useState<MatchDetail | null>(null);
   const [loadingMatchDetail, setLoadingMatchDetail] = useState(false);
@@ -89,9 +112,10 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const [gp, ratings] = await Promise.all([
+        const [gp, ratings, evts] = await Promise.all([
           api.graduateProfile.get(),
           api.ratings.getMyRatings().catch(() => []),
+          api.events.list().catch(() => []),
         ]);
         if (gp) {
           setGraduateProfile(gp);
@@ -113,6 +137,7 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
           });
         }
         setMyRatings(ratings);
+        setEvents(evts);
         console.log('GP loaded from API:', gp);
       } catch (err) {
         console.error('Error loading graduate profile, using login data:', err);
@@ -301,6 +326,7 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
         setAppliedJobs(prev => [...prev, selectedJobForModal.id]);
         showFeedback('¡Postulación enviada exitosamente!');
         setSelectedJobForModal(null);
+
       } catch (err: any) {
         showFeedback(err.message || 'Error al postular a la oferta');
       }
@@ -386,42 +412,55 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
         </div>
       )}
 
-      <div className="border-b border-gray-250 flex gap-6">
-        <button
-          onClick={() => setActiveTab('FEED')}
-          className={`pb-3 text-sm font-extrabold border-b-2 transition-all ${
-            activeTab === 'FEED'
-              ? 'border-red-700 text-red-800'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Convocatorias
-        </button>
-        <button
-          onClick={() => setActiveTab('APPLICATIONS')}
-          className={`pb-3 text-sm font-extrabold border-b-2 transition-all ${
-            activeTab === 'APPLICATIONS'
-              ? 'border-red-700 text-red-800'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Mis Postulaciones
-          {applications.length > 0 && (
-            <span className="ml-2 px-2 py-0.5 text-[10px] bg-red-100 text-red-800 rounded-full">
-              {applications.length}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => setActiveTab('PROFILE')}
-          className={`pb-3 text-sm font-extrabold border-b-2 transition-all ${
-            activeTab === 'PROFILE'
-              ? 'border-red-700 text-red-800'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Mi Perfil & CV
-        </button>
+      <div className="border-b border-gray-250 flex justify-between items-end">
+        <div className="flex gap-6">
+          <button
+            onClick={() => setActiveTab('FEED')}
+            className={`pb-3 text-sm font-extrabold border-b-2 transition-all ${
+              activeTab === 'FEED'
+                ? 'border-red-700 text-red-800'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Convocatorias
+          </button>
+          <button
+            onClick={() => setActiveTab('APPLICATIONS')}
+            className={`pb-3 text-sm font-extrabold border-b-2 transition-all ${
+              activeTab === 'APPLICATIONS'
+                ? 'border-red-700 text-red-800'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Mis Postulaciones
+            {applications.length > 0 && (
+              <span className="ml-2 px-2 py-0.5 text-[10px] bg-red-100 text-red-800 rounded-full">
+                {applications.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('PROFILE')}
+            className={`pb-3 text-sm font-extrabold border-b-2 transition-all ${
+              activeTab === 'PROFILE'
+                ? 'border-red-700 text-red-800'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Mi Perfil & CV
+          </button>
+        </div>
+        
+        <div className="pb-3 flex items-center pr-2">
+          <div className="relative cursor-pointer hover:bg-gray-100 p-1.5 rounded-full transition-colors" title="Notificaciones">
+            <Bell className="w-5 h-5 text-gray-600" />
+            {jobs.filter(j => !viewedJobs.includes(j.id)).length > 0 && (
+              <span className="absolute 0 top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[9px] font-bold text-white shadow-xs animate-bounce">
+                {jobs.filter(j => !viewedJobs.includes(j.id)).length}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* TAB: FEED */}
@@ -491,6 +530,30 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
                 </div>
               </div>
             )}
+
+            {/* Events Section */}
+            {events.length > 0 && (
+              <div className="space-y-3 pt-2">
+                <h3 className="text-xs font-black text-amber-600 uppercase tracking-widest flex items-center gap-1.5">
+                  <Calendar className="w-4 h-4 text-amber-500" /> Eventos & Novedades
+                </h3>
+                <div className="space-y-2">
+                  {events.slice(0, 4).map(event => (
+                    <div 
+                      key={event.id} 
+                      onClick={() => setSelectedEventForModal(event)}
+                      className="p-3.5 bg-amber-50/40 border border-amber-100 rounded-xl flex items-center justify-between gap-4 shadow-3xs cursor-pointer hover:border-amber-300 hover:bg-amber-50/80 transition-colors"
+                    >
+                      <div className="truncate">
+                        <h4 className="text-xs font-extrabold text-amber-950 truncate">{event.title}</h4>
+                        <p className="text-[10px] text-amber-700 font-semibold truncate">{new Date(event.date).toLocaleDateString('es-PE')} • {event.type}</p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="lg:col-span-2 space-y-6 animate-fadeIn">
@@ -530,7 +593,14 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
                       <CardContent className="p-5 space-y-4">
                         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                           <div className="space-y-1">
-                            <h3 className="text-lg font-extrabold text-gray-900 tracking-tight">{job.title}</h3>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="text-lg font-extrabold text-gray-900 tracking-tight">{job.title}</h3>
+                              {!viewedJobs.includes(job.id) && (
+                                <span className="px-2 py-0.5 rounded-md text-[9px] font-black bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-3xs uppercase tracking-widest">
+                                  Nuevo
+                                </span>
+                              )}
+                            </div>
                             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500 font-semibold">
                               <span className="flex items-center gap-1">
                                 <Building className="w-3.5 h-3.5 text-gray-400" /> {job.company_name}
@@ -549,7 +619,7 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
                             <MapPin className="w-3.5 h-3.5 text-gray-300" /> {job.lugar || 'Arequipa'}
                           </span>
                           <span className="flex items-center gap-1">
-                            <Calendar className="w-3.5 h-3.5 text-gray-300" /> Cierre: {job.fecha_cierre ? new Date(job.fecha_cierre + 'T23:59:59').toLocaleDateString('es-PE') : 'No registrado'}
+                            <Calendar className="w-3.5 h-3.5 text-gray-300" /> Cierre: {job.fecha_fin ? new Date(job.fecha_fin).toLocaleDateString('es-PE') : 'No registrado'}
                           </span>
                           {job.vacantes && (
                             <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-gray-200">
@@ -617,13 +687,26 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
                             </div>
                           </div>
 
-                          <Button
-                            onClick={() => handleApplyClick(job)}
-                            className="bg-red-800 hover:bg-red-950 text-white rounded-xl px-5 py-2 font-bold text-xs shadow-sm flex items-center gap-1.5"
-                          >
-                            <Send className="w-3.5 h-3.5" />
-                            Ver & Postular
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => {
+                                setSelectedJobForModal(job);
+                                if (!viewedJobs.includes(job.id)) {
+                                  setViewedJobs(prev => [...prev, job.id]);
+                                }
+                              }}
+                              className="text-xs font-extrabold text-red-800 hover:text-red-900 flex items-center gap-1 transition-colors bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg border border-red-100 shadow-3xs"
+                            >
+                              Ver Detalles <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                            <Button
+                              onClick={() => handleApplyClick(job)}
+                              className="bg-red-800 hover:bg-red-950 text-white rounded-xl px-5 py-2 font-bold text-xs shadow-sm flex items-center gap-1.5"
+                            >
+                              <Send className="w-3.5 h-3.5" />
+                              Postular
+                            </Button>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -723,6 +806,22 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
                               </button>
                             )
                           )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedJobForInterview(job);
+                              setInterviewStep(0);
+                              setChatMessages([{
+                                sender: 'ai',
+                                text: `¡Hola, ${profileForm.name.split(' ')[0] || 'Candidato'}! Soy la IA Reclutadora. He revisado tu perfil y noté tu interés en la vacante de **${job.title}** para **${job.company_name}**.\n\nSegún la vacante, buscan a alguien que cumpla con los siguientes requisitos: "${job.requisitos?.substring(0, 80)}...".\n\nPara comenzar, cuéntame: ¿Qué experiencia previa tienes que te ayude a cumplir con este perfil y cómo aportarías valor a la empresa?`
+                              }]);
+                              setChatInput('');
+                              setTimeout(() => setInterviewStep(1), 2500);
+                            }}
+                            className="inline-flex items-center gap-1.5 text-[10px] font-extrabold px-3 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800 transition-all shadow-3xs"
+                          >
+                            <Bot className="w-3.5 h-3.5" /> Simular Entrevista
+                          </button>
                         </div>
                       </div>
                     </CardContent>
@@ -918,7 +1017,29 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
                 </div>
               </div>
 
-              <div className="flex justify-end pt-5 border-t border-gray-150">
+              {/* Preferencias de Notificacion */}
+              <div className="pt-6 mt-6 border-t border-gray-150">
+                <h3 className="text-sm font-black text-gray-900 mb-3 flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-gray-500" /> Preferencias de Notificación
+                </h3>
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex items-center justify-between shadow-3xs transition-all hover:border-green-300 hover:shadow-sm">
+                  <div className="space-y-1 max-w-[80%]">
+                    <p className="text-xs font-extrabold text-gray-800 flex items-center gap-1.5">
+                      <MessageCircle className="w-4 h-4 text-green-600" />
+                      Alertas por WhatsApp
+                    </p>
+                    <p className="text-[10px] text-gray-500 font-medium leading-relaxed">
+                      Recibe un mensaje inmediato en tu celular cuando una vacante haga un match mayor al 80% con tu perfil. (Demostración simulada).
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input type="checkbox" className="sr-only peer" checked={whatsappNotifs} onChange={(e) => setWhatsappNotifs(e.target.checked)} />
+                    <div className="w-9 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500 shadow-inner"></div>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-5 border-t border-gray-150 mt-6">
                 <Button type="submit" loading={savingProfile} className="bg-red-800 hover:bg-red-950 text-white rounded-xl font-bold px-6 py-2.5 text-xs shadow-md">
                   Guardar Perfil Completo
                 </Button>
@@ -958,7 +1079,7 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs text-gray-600 font-semibold border-y border-gray-100 py-3">
                   <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-gray-400" /> {selectedJobForModal.lugar || 'No especificado'}</span>
-                  <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4 text-gray-400" /> Cierre: {selectedJobForModal.fecha_cierre ? new Date(selectedJobForModal.fecha_cierre + 'T23:59:59').toLocaleDateString('es-PE') : 'N/R'}</span>
+                  <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4 text-gray-400" /> Cierre: {selectedJobForModal.fecha_fin ? new Date(selectedJobForModal.fecha_fin).toLocaleDateString('es-PE') : 'N/R'}</span>
                   <span className="flex items-center gap-1.5"><Clock className="w-4 h-4 text-gray-400" /> {selectedJobForModal.horario || 'N/R'}</span>
                 </div>
 
@@ -1107,9 +1228,21 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
               )}
 
               <div className="space-y-4 max-h-60 overflow-y-auto pr-1">
+                {selectedJobForModal.description && (
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-black text-gray-400 uppercase tracking-wider">Descripción General</h4>
+                    <p className="text-xs text-gray-650 bg-gray-50 p-3 rounded-xl border border-gray-150 leading-relaxed whitespace-pre-line">{selectedJobForModal.description}</p>
+                  </div>
+                )}
+                {selectedJobForModal.perfil && (
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-black text-gray-400 uppercase tracking-wider">Perfil Solicitado</h4>
+                    <p className="text-xs text-gray-650 bg-gray-50 p-3 rounded-xl border border-gray-150 leading-relaxed whitespace-pre-line">{selectedJobForModal.perfil}</p>
+                  </div>
+                )}
                 {selectedJobForModal.requisitos && (
                   <div className="space-y-1">
-                    <h4 className="text-xs font-black text-gray-400 uppercase tracking-wider">Requisitos</h4>
+                    <h4 className="text-xs font-black text-gray-400 uppercase tracking-wider">Requisitos Específicos</h4>
                     <p className="text-xs text-gray-650 bg-gray-50 p-3 rounded-xl border border-gray-150 leading-relaxed whitespace-pre-line">{selectedJobForModal.requisitos}</p>
                   </div>
                 )}
@@ -1154,6 +1287,235 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* EVENT MODAL */}
+      {selectedEventForModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-lg transform bg-white rounded-2xl shadow-2xl overflow-hidden transition-all flex flex-col max-h-[90vh]">
+            <div className="bg-gradient-to-r from-amber-50 to-white border-b border-amber-100 p-5 flex justify-between items-start gap-4">
+              <div>
+                <span className="text-[10px] font-black text-amber-800 bg-amber-100 px-2 py-1 rounded-full uppercase tracking-wider mb-2 inline-block">
+                  {selectedEventForModal.type}
+                </span>
+                <h3 className="text-xl font-extrabold text-gray-900 leading-tight">
+                  {selectedEventForModal.title}
+                </h3>
+              </div>
+              <button
+                onClick={() => setSelectedEventForModal(null)}
+                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-5 overflow-y-auto custom-scrollbar space-y-4">
+              <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
+                {selectedEventForModal.description}
+              </p>
+              
+              <div className="bg-gray-50 border border-gray-150 rounded-xl p-4 space-y-3 mt-4">
+                <div className="flex items-center gap-2 text-sm text-gray-700">
+                  <Calendar className="w-4 h-4 text-gray-400" />
+                  <strong>Fecha:</strong> {new Date(selectedEventForModal.date).toLocaleDateString('es-PE')}
+                </div>
+                {selectedEventForModal.location && (
+                  <div className="flex items-start gap-2 text-sm text-gray-700">
+                    <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                    <span><strong>Lugar:</strong> {selectedEventForModal.location}</span>
+                  </div>
+                )}
+                {selectedEventForModal.link && (
+                  <div className="flex items-center gap-2 text-sm text-blue-700 font-semibold pt-1">
+                    <LinkIcon className="w-4 h-4" />
+                    <a href={selectedEventForModal.link} target="_blank" rel="noreferrer" className="hover:underline">
+                      Ver enlace del evento
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="p-4 border-t border-gray-100 flex justify-end">
+              <Button onClick={() => setSelectedEventForModal(null)} className="rounded-xl px-5 py-2 text-xs font-bold">
+                Cerrar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AI INTERVIEW MOCK MODAL */}
+      {selectedJobForInterview && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-4xl transform bg-white rounded-3xl shadow-2xl overflow-hidden transition-all flex flex-col h-[90vh] max-h-[900px] border border-red-100">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-red-900 to-red-800 p-5 flex justify-between items-center text-white shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-xs border border-white/30">
+                  <Bot className="w-5 h-5 text-red-50" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black tracking-tight flex items-center gap-2">
+                    Simulador IA de Entrevista
+                    <span className="bg-red-500 text-[9px] px-2 py-0.5 rounded-full uppercase tracking-widest font-bold">Beta</span>
+                  </h3>
+                  <p className="text-xs text-red-100 font-medium opacity-90 truncate max-w-[250px] sm:max-w-md">
+                    Entrenando para: {selectedJobForInterview.title} en {selectedJobForInterview.company_name}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedJobForInterview(null)}
+                className="p-2 text-red-200 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {interviewStep === 0 ? (
+              /* Loading / Preparation Step */
+              <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50 space-y-6">
+                <div className="relative">
+                  <div className="absolute inset-0 border-4 border-red-200 rounded-full animate-ping opacity-50"></div>
+                  <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center border-4 border-red-100 relative z-10 shadow-lg">
+                    <Cpu className="w-10 h-10 text-red-800 animate-pulse" />
+                  </div>
+                </div>
+                <div className="text-center space-y-3 max-w-xs">
+                  <h4 className="text-lg font-black text-gray-800">Preparando tu simulacro...</h4>
+                  <div className="space-y-2 pt-2">
+                    <p className="text-xs text-gray-500 flex items-center justify-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-green-500" /> Analizando tu Perfil
+                    </p>
+                    <p className="text-xs text-gray-500 flex items-center justify-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-green-500" /> Procesando requerimientos
+                    </p>
+                    <p className="text-xs text-gray-500 flex items-center justify-center gap-2 opacity-70 animate-pulse">
+                      <Loader className="w-4 h-4 text-red-800 animate-spin" /> Configurando Agente IA...
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Chat Interface */
+              <div className="flex-1 flex flex-col bg-slate-50 h-full overflow-hidden">
+                <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                  <div className="text-center">
+                    <span className="bg-white text-gray-400 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider border border-gray-200">
+                      Entrevista Iniciada
+                    </span>
+                  </div>
+                  
+                  {chatMessages.map((msg, idx) => (
+                    <div key={idx} className={`flex gap-4 max-w-[85%] ${msg.sender === 'user' ? 'ml-auto flex-row-reverse' : ''}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-md ${msg.sender === 'ai' ? 'bg-white border border-gray-200' : 'bg-red-800'}`}>
+                        {msg.sender === 'ai' ? <Bot className="w-4 h-4 text-red-800" /> : <UserIcon className="w-4 h-4 text-white" />}
+                      </div>
+                      <div className={`p-4 rounded-2xl shadow-sm ${
+                        msg.sender === 'ai' 
+                          ? 'bg-white border border-gray-200 rounded-tl-sm text-gray-800' 
+                          : 'bg-red-800 border border-red-700 rounded-tr-sm text-white'
+                      }`}>
+                        <p className="text-sm leading-relaxed font-medium whitespace-pre-wrap">
+                          {msg.text}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+
+                  {isAiTyping && (
+                    <div className="flex gap-4 max-w-[85%]">
+                      <div className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center flex-shrink-0 shadow-md">
+                        <Bot className="w-4 h-4 text-red-800 animate-pulse" />
+                      </div>
+                      <div className="bg-white border border-gray-200 p-4 rounded-2xl rounded-tl-sm shadow-sm flex gap-1.5 items-center">
+                        <div className="w-2 h-2 bg-red-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
+                        <div className="w-2 h-2 bg-red-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
+                        <div className="w-2 h-2 bg-red-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
+                      </div>
+                    </div>
+                  )}
+                  <div ref={chatEndRef} />
+                </div>
+                
+                {/* Input Area */}
+                <div className="p-4 bg-white border-t border-gray-200 shrink-0">
+                  <div className="flex items-end gap-3 max-w-4xl mx-auto relative">
+                    <button className="p-3.5 bg-gray-100 text-gray-500 hover:bg-gray-200 rounded-full transition-colors shrink-0 shadow-sm border border-gray-200">
+                      <Mic className="w-5 h-5" />
+                    </button>
+                    <div className="flex-1 relative">
+                      <textarea
+                        rows={2}
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            if (chatInput.trim() && !isAiTyping) {
+                              const newMsgs = [...chatMessages, { sender: 'user' as const, text: chatInput.trim() }];
+                              setChatMessages(newMsgs);
+                              setChatInput('');
+                              setIsAiTyping(true);
+                              
+                              // Fake AI Response logic
+                              setTimeout(() => {
+                                setIsAiTyping(false);
+                                let aiReply = '';
+                                if (newMsgs.length === 2) {
+                                  aiReply = `¡Muy interesante! Hablando de los requisitos técnicos, veo que la empresa pide bastante proactividad e iniciativa. ¿Puedes describirme un proyecto o situación pasada donde hayas tenido que tomar la iniciativa para resolver un problema complejo?`;
+                                } else if (newMsgs.length === 4) {
+                                  aiReply = `Perfecto. Eso demuestra tu capacidad de resolución. Ahora un poco de habilidades blandas: ¿Cómo manejas las situaciones bajo mucha presión o cuando los plazos de entrega son muy ajustados?`;
+                                } else if (newMsgs.length === 6) {
+                                  aiReply = `Excelente respuesta. Por último, ¿por qué te gustaría trabajar en ${selectedJobForInterview.company_name} y qué valor distintivo sientes que agregarías al equipo desde el primer día?`;
+                                } else {
+                                  aiReply = `¡Excelente, ${profileForm.name.split(' ')[0]}! Has completado esta simulación de entrevista con éxito.\n\nRecuerda: en una entrevista real, tu capacidad para estructurar respuestas concretas usando el método STAR (Situación, Tarea, Acción, Resultado) es vital. ¡Sigue practicando y mucho éxito en tus postulaciones reales!`;
+                                }
+                                setChatMessages([...newMsgs, { sender: 'ai', text: aiReply }]);
+                              }, 2000);
+                            }
+                          }
+                        }}
+                        placeholder="Escribe tu respuesta y presiona Enter..."
+                        className="w-full bg-slate-50 border border-gray-200 text-gray-900 rounded-2xl py-3 pl-4 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-red-800 focus:border-transparent resize-none custom-scrollbar"
+                      />
+                      <button className="absolute right-2 bottom-2 p-2 bg-red-800 text-white rounded-xl hover:bg-red-900 transition-colors shadow-md" onClick={() => {
+                          if (chatInput.trim() && !isAiTyping) {
+                            const newMsgs = [...chatMessages, { sender: 'user' as const, text: chatInput.trim() }];
+                            setChatMessages(newMsgs);
+                            setChatInput('');
+                            setIsAiTyping(true);
+                            setTimeout(() => {
+                              setIsAiTyping(false);
+                              let aiReply = '';
+                              if (newMsgs.length === 2) {
+                                aiReply = `¡Muy interesante! Hablando de los requisitos técnicos, veo que la empresa pide bastante proactividad e iniciativa. ¿Puedes describirme un proyecto o situación pasada donde hayas tenido que tomar la iniciativa para resolver un problema complejo?`;
+                              } else if (newMsgs.length === 4) {
+                                aiReply = `Perfecto. Eso demuestra tu capacidad de resolución. Ahora un poco de habilidades blandas: ¿Cómo manejas las situaciones bajo mucha presión o cuando los plazos de entrega son muy ajustados?`;
+                              } else if (newMsgs.length === 6) {
+                                aiReply = `Excelente respuesta. Por último, ¿por qué te gustaría trabajar en ${selectedJobForInterview.company_name} y qué valor distintivo sientes que agregarías al equipo desde el primer día?`;
+                              } else {
+                                aiReply = `¡Excelente, ${profileForm.name.split(' ')[0]}! Has completado esta simulación de entrevista con éxito.\n\nRecuerda: en una entrevista real, tu capacidad para estructurar respuestas concretas usando el método STAR (Situación, Tarea, Acción, Resultado) es vital. ¡Sigue practicando y mucho éxito en tus postulaciones reales!`;
+                              }
+                              setChatMessages([...newMsgs, { sender: 'ai', text: aiReply }]);
+                            }, 2000);
+                          }
+                      }}>
+                        <Send className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-center text-[10px] text-gray-400 mt-3 font-medium">
+                    Simulador en fase Beta. Las respuestas son autogeneradas para demostración de capacidades.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

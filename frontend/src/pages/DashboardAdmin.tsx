@@ -14,6 +14,7 @@ import { api } from '../services/api';
 import type { User } from '../types';
 import Button from '../components/ui/Button';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
+import DashboardAdminEvents from './DashboardAdminEvents';
 
 export default function DashboardAdmin() {
   const [companies, setCompanies] = useState<User[]>([]);
@@ -54,7 +55,7 @@ export default function DashboardAdmin() {
 
   const handleVerifyToggle = async (companyId: string, currentStatus: boolean) => {
     try {
-      await api.admin.verifyCompany(companyId);
+      await api.admin.verifyCompany(companyId, !currentStatus);
       showTemporaryMessage(`Empresa ${!currentStatus ? 'VERIFICADA' : 'DESACTIVADA'} con éxito. Ofertas vinculadas actualizadas.`, 'success');
       loadCompanies();
     } catch (err) {
@@ -107,7 +108,7 @@ export default function DashboardAdmin() {
       default:
         return true;
     }
-  });
+  });  const [activeTab, setActiveTab] = useState<'empresas' | 'eventos'>('empresas');
 
   return (
     <div className="space-y-8 font-sans max-w-6xl mx-auto">
@@ -131,16 +132,39 @@ export default function DashboardAdmin() {
         </div>
       </div>
 
-      {message && (
-        <div className={`flex items-center gap-2.5 p-4 rounded-xl text-sm border font-semibold animate-fadeIn ${
-          message.type === 'success' 
-            ? 'bg-green-50 border-green-200 text-green-800' 
-            : 'bg-red-50 border-red-200 text-red-800'
-        }`}>
-          {message.type === 'success' ? <ShieldCheck className="w-5 h-5 flex-shrink-0" /> : <AlertTriangle className="w-5 h-5 flex-shrink-0" />}
-          <span>{message.text}</span>
-        </div>
-      )}
+      <div className="flex gap-4 border-b border-gray-200">
+        <button
+          onClick={() => setActiveTab('empresas')}
+          className={`pb-2 px-2 text-sm font-bold border-b-2 transition-colors ${
+            activeTab === 'empresas' ? 'border-amber-600 text-amber-700' : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Gestión de Empresas
+        </button>
+        <button
+          onClick={() => setActiveTab('eventos')}
+          className={`pb-2 px-2 text-sm font-bold border-b-2 transition-colors ${
+            activeTab === 'eventos' ? 'border-amber-600 text-amber-700' : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Gestión de Eventos
+        </button>
+      </div>
+
+      {activeTab === 'eventos' ? (
+        <DashboardAdminEvents />
+      ) : (
+        <>
+          {message && (
+            <div className={`flex items-center gap-2.5 p-4 rounded-xl text-sm border font-semibold animate-fadeIn ${
+              message.type === 'success' 
+                ? 'bg-green-50 border-green-200 text-green-800' 
+                : 'bg-red-50 border-red-200 text-red-800'
+            }`}>
+              {message.type === 'success' ? <ShieldCheck className="w-5 h-5 flex-shrink-0" /> : <AlertTriangle className="w-5 h-5 flex-shrink-0" />}
+              <span>{message.text}</span>
+            </div>
+          )}
 
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -427,6 +451,8 @@ export default function DashboardAdmin() {
           )}
         </CardContent>
       </Card>
+      </>
+      )}
     </div>
   );
 }

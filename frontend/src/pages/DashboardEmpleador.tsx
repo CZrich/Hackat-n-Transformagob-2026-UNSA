@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import {
   Plus,
   AlertCircle,
-  DollarSign,
   Briefcase,
   Sparkles,
   Tag,
@@ -18,10 +17,7 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
-  Download,
-  Trash2,
   XCircle,
-  RefreshCw,
   Save,
   Settings
 } from 'lucide-react';
@@ -39,10 +35,10 @@ interface DashboardEmpleadorProps {
 }
 
 const PRESET_SKILLS = [
-  'TypeScript', 'React', 'Node.js', 'NestJS', 'Kotlin', 'Android',
-  'PostgreSQL', 'Docker', 'AWS', 'Kubernetes', 'Microsoft Office',
-  'Excel Avanzado', 'AutoCAD', 'Costos y Presupuestos', 'NIIF', 'Logística',
-  'Tributación', 'Gestión de Obras'
+  'Trabajo en Equipo', 'Liderazgo', 'Comunicación Efectiva', 'Resolución de Problemas', 
+  'Proactividad', 'Pensamiento Crítico', 'Adaptabilidad', 'Orientación a Resultados',
+  'Gestión del Tiempo', 'Innovación', 'Atención al Cliente', 'Análisis de Datos', 
+  'Microsoft Office', 'Inglés Intermedio', 'Inglés Avanzado', 'Gestión de Proyectos'
 ];
 
 function statusBadge(status: Job['status']) {
@@ -69,7 +65,7 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
   const { historyQuery, createJob, updateEmployerJobStatus, deleteJob, updateApplicationStatus } = useJobs();
   const { data: jobs = [], isLoading: loading, error } = historyQuery;
   const [showForm, setShowForm] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
+  const [activeTab, setActiveTab] = useState<'JOBS' | 'PROFILE'>('JOBS');
 
   const [expandedJobApplicants, setExpandedJobApplicants] = useState<Record<string, boolean>>({});
 
@@ -109,11 +105,35 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [cvFeedback, setCvFeedback] = useState<string | null>(null);
+  useEffect(() => {
+    api.auth.getProfile().then(latest => {
+      setProfileForm({
+        name: latest.name || '',
+        ruc: latest.ruc || '',
+        rubro: latest.rubro || '',
+        direccion: latest.direccion || '',
+        horario: latest.horario || '',
+        contacto_telefono: latest.contacto_telefono || '',
+        contacto_email: latest.contacto_email || latest.email || '',
+      });
+      // Also update completeForm if profile is incomplete
+      setCompleteForm({
+        company_name: latest.name === 'Empresa por Completar' ? '' : latest.name,
+        ruc: latest.ruc || '',
+        contact_name: latest.contact_name || '',
+        rubro: latest.rubro || '',
+        telefono: latest.contacto_telefono || ''
+      });
+      
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const u = JSON.parse(userStr);
+        localStorage.setItem('user', JSON.stringify({ ...u, ...latest }));
+      }
+    }).catch(console.error);
+  }, []);
 
-
-
-  const handleCompleteSubmit = (e: React.FormEvent) => {
+  const handleCompleteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setCompleteErrors({});
     const errors: Record<string, string> = {};
@@ -239,7 +259,11 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
         ...result.data,
         salario_min: Number(result.data.salario_min),
         salario_max: Number(result.data.salario_max),
-        vacantes: Number(result.data.vacantes)
+        vacantes: Number(result.data.vacantes),
+        fecha_fin: result.data.fecha_cierre,
+        description: result.data.informacion_adicional 
+          ? `${result.data.description || ''}\n\nInformación Adicional:\n${result.data.informacion_adicional}` 
+          : result.data.description
       });
       setShowForm(false);
       // Reset form
@@ -292,9 +316,6 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
     }));
   };
 
-  const handleDownloadCV = (cvUrl: string) => {
-    if (cvUrl) window.open(cvUrl, '_blank', 'noopener,noreferrer');
-  };
 
   const getMatchPercentage = (gradSkills: string[] = [], jobComps: string[] = []) => {
     if (!jobComps || jobComps.length === 0) return 100;
@@ -314,7 +335,7 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
   const [savingCompanyProfile, setSavingCompanyProfile] = useState(false);
 
   useEffect(() => {
-    if (showProfile) {
+    if (activeTab === 'PROFILE') {
       api.auth.getProfile().then((u: any) => {
         if (u?.company) {
           setProfileForm({
@@ -329,7 +350,7 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
         }
       }).catch(() => {});
     }
-  }, [showProfile]);
+  }, [activeTab]);
 
   const handleCompanyProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -346,7 +367,7 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
         contacto_telefono: profileForm.contacto_telefono,
         contacto_email: profileForm.contacto_email,
       })) {
-        if (value) payload[key] = value;
+        if (value !== undefined) payload[key] = value;
       }
       const rawUser: any = await api.auth.updateProfile(payload);
       const c = rawUser.company;
@@ -505,35 +526,39 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto md:justify-end">
-          <Button
-            onClick={() => {
-              setShowForm(false);
-              setShowProfile(!showProfile);
-            }}
-            className="w-full sm:w-auto bg-white/90 text-red-950 hover:bg-amber-100 font-bold shadow-md rounded-xl py-2.5 px-5 text-xs transition-all border border-transparent hover:border-amber-200"
-          >
-            <Settings className="w-4 h-4 mr-1.5" />
-            Configuración de Empresa
-          </Button>
-          <Button
-            onClick={() => {
-              setShowProfile(false);
-              setShowForm(!showForm);
-            }}
-            className="w-full sm:w-auto bg-amber-400 text-amber-950 hover:bg-amber-300 font-bold shadow-md rounded-xl py-2.5 px-5 text-xs transition-all border border-amber-500 hover:border-amber-400"
+          <button
+            onClick={() => setShowForm(true)}
+            className="inline-flex items-center justify-center w-full sm:w-auto bg-amber-400 text-amber-950 hover:bg-amber-300 font-bold shadow-md rounded-xl py-2.5 px-5 text-xs transition-all border border-amber-500 hover:border-amber-400"
           >
             <Plus className="w-4 h-4 mr-1.5" />
-            {showForm ? 'Cerrar Formulario' : 'Nueva Convocatoria'}
-          </Button>
+            Nueva Convocatoria
+          </button>
         </div>
       </div>
 
-      {cvFeedback && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl border border-slate-800 text-xs font-semibold flex items-center gap-2 animate-fadeIn">
-          <Download className="w-4 h-4 text-amber-400 animate-bounce" />
-          <span>{cvFeedback}</span>
-        </div>
-      )}
+      {/* TABS NAVIGATION */}
+      <div className="flex border-b border-gray-200 gap-6 px-2">
+        <button
+          onClick={() => setActiveTab('JOBS')}
+          className={`pb-3 text-sm font-bold border-b-2 transition-all ${
+            activeTab === 'JOBS'
+              ? 'border-red-600 text-red-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+          }`}
+        >
+          Mis Convocatorias Activas
+        </button>
+        <button
+          onClick={() => setActiveTab('PROFILE')}
+          className={`pb-3 text-sm font-bold border-b-2 transition-all ${
+            activeTab === 'PROFILE'
+              ? 'border-red-600 text-red-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+          }`}
+        >
+          Perfil Corporativo
+        </button>
+      </div>
 
       {error && (
         <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-red-800 text-sm shadow-sm">
@@ -542,46 +567,58 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
         </div>
       )}
 
-      {/* Creation Form */}
+      {/* Creation Form Modal */}
       {showForm && (
-        <Card className="border border-red-100 shadow-xl overflow-hidden animate-fadeIn">
-          <CardHeader className="bg-gradient-to-r from-red-50 to-white border-b border-red-100 py-4 px-6 flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <Plus className="w-5 h-5 text-red-800" />
-              <h2 className="text-lg font-bold text-gray-900">Registrar Nueva Oferta Laboral</h2>
-            </div>
-            <span className="text-xs font-bold text-red-800 bg-red-100 px-2.5 py-1 rounded-full uppercase tracking-wider">
-              {user.es_verificada ? 'Publicación Automática' : 'Pendiente Verificación RUC'}
-            </span>
-          </CardHeader>
-          <CardContent className="p-6">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Info Box on Transparency */}
-              <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-xl flex items-start gap-3 text-xs text-amber-900">
-                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <p className="font-bold">Política Anti-Opacidad Salarial de la UNSA</p>
-                  <p className="leading-relaxed">
-                    Es obligatorio declarar rangos salariales transparentes. Si su empresa no está verificada por ODEEG, la oferta permanecerá oculta hasta que el administrador certifique que la empresa es real.
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-4xl transform bg-white rounded-2xl shadow-2xl overflow-hidden transition-all">
+            <div className="bg-gradient-to-r from-red-50 to-white border-b border-red-100 py-4 px-6 flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-red-100 rounded-lg">
+                  <Plus className="w-5 h-5 text-red-800" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 leading-tight">Registrar Nueva Oferta Laboral</h2>
+                  <p className="text-xs text-gray-500 font-medium">
+                    {user.es_verificada ? 'Publicación Inmediata' : 'Pendiente Verificación ODEEG'}
                   </p>
                 </div>
               </div>
+              <button
+                onClick={() => setShowForm(false)}
+                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
 
-              {/* SECTION: GENERAL DATA */}
-              <div className="space-y-4">
-                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest border-b border-gray-150 pb-1.5">1. Datos Generales del Puesto</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                  <Input
-                    label="RUC de la empresa"
-                    name="ruc"
-                    maxLength={11}
-                    value={formData.ruc}
-                    onChange={handleChange}
-                    error={formErrors.ruc}
-                    className="rounded-xl"
-                    disabled={!!user.ruc}
-                  />
+            <div className="p-6 max-h-[75vh] overflow-y-auto custom-scrollbar">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Info Box on Transparency */}
+                <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-xl flex items-start gap-3 text-xs text-amber-900">
+                  <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="font-bold">Política Anti-Opacidad Salarial de la UNSA</p>
+                    <p className="leading-relaxed">
+                      Es obligatorio declarar rangos salariales transparentes. Si su empresa no está verificada por ODEEG, la oferta permanecerá oculta hasta que el administrador certifique que la empresa es real.
+                    </p>
+                  </div>
+                </div>
+
+                {/* SECTION: GENERAL DATA */}
+                <div className="space-y-4">
+                  <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest border-b border-gray-150 pb-1.5">1. Datos Generales del Puesto</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <Input
+                      label="RUC de la empresa"
+                      name="ruc"
+                      maxLength={11}
+                      value={formData.ruc}
+                      onChange={handleChange}
+                      error={formErrors.ruc}
+                      className="rounded-xl"
+                      disabled={!!user.ruc}
+                    />
 
                   <Input
                     label="Título del Puesto"
@@ -592,6 +629,21 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
                     error={formErrors.title}
                     className="rounded-xl col-span-1 md:col-span-2"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">
+                    Descripción General de la Oferta
+                  </label>
+                  <textarea
+                    name="description"
+                    rows={3}
+                    value={formData.description}
+                    onChange={handleChange}
+                    className="block w-full rounded-xl border border-gray-300 px-3.5 py-2.5 text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                    placeholder="Resumen o detalles principales de la convocatoria..."
+                  />
+                  {formErrors.description && <p className="mt-1 text-xs text-red-600">{formErrors.description}</p>}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -839,43 +891,62 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
                 )}
               </div>
             </form>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+      </div>
       )}
 
-      {/* Employer Profile Section */}
-      {showProfile && (
-        <Card className="border border-gray-200 shadow-md animate-fadeIn">
-          <CardHeader className="bg-gradient-to-r from-amber-50 to-white border-b border-amber-100 py-4 px-6">
-            <div className="flex items-center gap-2">
-              <Settings className="w-5 h-5 text-amber-800" />
-              <h2 className="text-lg font-bold text-gray-900">Perfil de la Empresa</h2>
+      {/* TAB CONTENT: PROFILE */}
+      {activeTab === 'PROFILE' && (
+        <Card className="bg-white rounded-2xl shadow-sm border border-gray-150 overflow-hidden animate-fadeIn">
+          <CardHeader className="bg-gradient-to-r from-amber-50 to-white border-b border-amber-100 py-5 px-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-amber-100 rounded-xl">
+                <Settings className="w-5 h-5 text-amber-800" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 leading-tight">Configuración de Empresa</h2>
+                <p className="text-xs text-gray-500 font-medium mt-0.5">Actualiza los datos públicos corporativos</p>
+              </div>
             </div>
           </CardHeader>
+          
           <CardContent className="p-6">
-            <form onSubmit={handleCompanyProfileSubmit} className="space-y-5">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <Input label="Razón Social" name="name" value={profileForm.name} onChange={e => setProfileForm(p => ({ ...p, name: e.target.value }))} className="bg-white rounded-xl" />
-                <Input label="RUC" name="ruc" value={profileForm.ruc} onChange={e => setProfileForm(p => ({ ...p, ruc: e.target.value }))} className="bg-white rounded-xl" maxLength={11} />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <Input label="Rubro Comercial" name="rubro" value={profileForm.rubro} onChange={e => setProfileForm(p => ({ ...p, rubro: e.target.value }))} className="bg-white rounded-xl" />
-                <Input label="Teléfono" name="telefono" value={profileForm.telefono} onChange={e => setProfileForm(p => ({ ...p, telefono: e.target.value }))} className="bg-white rounded-xl" maxLength={9} />
-              </div>
-              <Input label="Dirección" name="direccion" value={profileForm.direccion} onChange={e => setProfileForm(p => ({ ...p, direccion: e.target.value }))} className="bg-white rounded-xl" />
-              <Input label="Horario de Atención" name="horario" value={profileForm.horario} onChange={e => setProfileForm(p => ({ ...p, horario: e.target.value }))} className="bg-white rounded-xl" placeholder="Lunes a Viernes de 8:00 AM a 5:00 PM" />
-              <div className="flex justify-end pt-3 border-t border-gray-150">
-                <Button type="submit" loading={savingCompanyProfile} className="bg-amber-700 hover:bg-amber-900 text-white rounded-xl font-bold px-5 py-2.5 text-xs shadow-md">
-                  <Save className="w-3.5 h-3.5 mr-1" /> Guardar Cambios
-                </Button>
-              </div>
-            </form>
+              <form onSubmit={handleCompanyProfileSubmit} className="space-y-6">
+                <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-100 space-y-5">
+                  <h3 className="text-xs font-black text-amber-900 uppercase tracking-widest border-b border-gray-200 pb-2">Información Fiscal</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <Input label="Razón Social" name="name" value={profileForm.name} onChange={e => setProfileForm(p => ({ ...p, name: e.target.value }))} className="bg-white rounded-xl shadow-sm border-gray-200 focus:border-amber-500 focus:ring-amber-500/20" />
+                    <Input label="RUC" name="ruc" value={profileForm.ruc} onChange={e => setProfileForm(p => ({ ...p, ruc: e.target.value }))} className="bg-white rounded-xl shadow-sm border-gray-200 focus:border-amber-500 focus:ring-amber-500/20" maxLength={11} />
+                  </div>
+                </div>
+
+                <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-100 space-y-5">
+                  <h3 className="text-xs font-black text-amber-900 uppercase tracking-widest border-b border-gray-200 pb-2">Contacto Corporativo</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <Input label="Rubro Comercial" name="rubro" value={profileForm.rubro} onChange={e => setProfileForm(p => ({ ...p, rubro: e.target.value }))} className="bg-white rounded-xl shadow-sm border-gray-200 focus:border-amber-500 focus:ring-amber-500/20" />
+                    <Input label="Correo Electrónico de Contacto" type="email" name="contacto_email" value={profileForm.contacto_email} onChange={e => setProfileForm(p => ({ ...p, contacto_email: e.target.value }))} className="bg-white rounded-xl shadow-sm border-gray-200 focus:border-amber-500 focus:ring-amber-500/20" placeholder="contacto@empresa.com" />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <Input label="Teléfono de Contacto" name="contacto_telefono" value={profileForm.contacto_telefono} onChange={e => setProfileForm(p => ({ ...p, contacto_telefono: e.target.value }))} className="bg-white rounded-xl shadow-sm border-gray-200 focus:border-amber-500 focus:ring-amber-500/20" maxLength={9} />
+                    <Input label="Horario de Atención" name="horario" value={profileForm.horario} onChange={e => setProfileForm(p => ({ ...p, horario: e.target.value }))} className="bg-white rounded-xl shadow-sm border-gray-200 focus:border-amber-500 focus:ring-amber-500/20" placeholder="Ej: L-V de 8AM a 5PM" />
+                  </div>
+                  <Input label="Dirección Física" name="direccion" value={profileForm.direccion} onChange={e => setProfileForm(p => ({ ...p, direccion: e.target.value }))} className="bg-white rounded-xl shadow-sm border-gray-200 focus:border-amber-500 focus:ring-amber-500/20" placeholder="Ej: Av. Independencia S/N, Arequipa" />
+                </div>
+                
+                <div className="flex justify-end pt-5 mt-6 border-t border-gray-150">
+                  <Button type="submit" loading={savingCompanyProfile} className="bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-xl font-bold px-6 py-2.5 text-xs shadow-md shadow-amber-900/20 transition-all">
+                    <Save className="w-4 h-4 mr-1.5" /> Guardar Perfil
+                  </Button>
+                </div>
+              </form>
           </CardContent>
         </Card>
       )}
 
-      {/* History Area */}
-      <div className="space-y-4">
+      {/* TAB CONTENT: JOBS (History Area) */}
+      {activeTab === 'JOBS' && (
+      <div className="space-y-4 animate-fadeIn">
         <div className="flex items-center justify-between border-b border-gray-100 pb-2">
           <div>
             <h2 className="text-xl font-bold text-gray-800">Historial de ofertas publicadas</h2>
@@ -907,74 +978,69 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
               const isExpanded = !!expandedJobApplicants[job.id];
 
               return (
-                <Card key={job.id} className="hover:shadow-md transition-shadow border border-gray-150 bg-white overflow-hidden">
-                  <CardContent className="p-5 space-y-4">
-                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                      <div className="flex-grow space-y-2.5">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="font-extrabold text-gray-900 text-lg">{job.title}</h3>
+                <Card key={job.id} className="group border border-slate-200 hover:border-slate-300 hover:shadow-sm bg-white overflow-hidden rounded-2xl transition-all duration-200">
+                  <CardContent className="p-6 space-y-5">
+                    {/* Header: Title & Salary */}
+                    <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap items-center gap-2.5">
+                          <h3 className="font-bold text-slate-900 text-lg tracking-tight">{job.title}</h3>
                           {statusBadge(job.status)}
-                          <span className="px-2 py-0.5 bg-gray-100 text-gray-650 text-[10px] font-bold rounded-md border border-gray-200">
-                            {job.vacantes || 1} vacante{ (job.vacantes || 1) !== 1 ? 's' : '' }
+                        </div>
+                        <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-slate-500">
+                          <span className="flex items-center gap-1.5">
+                            <MapPin className="w-3.5 h-3.5 text-slate-400" /> {job.lugar || 'Lugar no especificado'}
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <Calendar className="w-3.5 h-3.5 text-slate-400" /> Cierre: {job.fecha_fin ? new Date(job.fecha_fin).toLocaleDateString('es-PE') : 'No definido'}
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5 text-slate-400" /> {job.horario || 'Horario no registrado'}
                           </span>
                         </div>
-                        
-                        <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-gray-500 font-medium">
-                          <span className="flex items-center gap-1 text-gray-600">
-                            <MapPin className="w-3.5 h-3.5 text-gray-400" /> {job.lugar || 'Lugar no especificado'}
-                          </span>
-                          <span className="flex items-center gap-1 text-gray-600">
-                            <Calendar className="w-3.5 h-3.5 text-gray-400" /> Cierre: {job.fecha_cierre ? new Date(job.fecha_cierre + 'T23:59:59').toLocaleDateString('es-PE') : 'No definido'}
-                          </span>
-                          <span className="flex items-center gap-1 text-gray-600">
-                            <Clock className="w-3.5 h-3.5 text-gray-400" /> {job.horario || 'Horario no registrado'}
-                          </span>
-                        </div>
-
-                        {job.competencias && job.competencias.length > 0 && (
-                          <div className="flex flex-wrap gap-1 pt-1">
-                            {job.competencias.map((comp) => (
-                              <span key={comp} className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200/50 text-amber-800 text-[9px] font-bold px-2 py-0.5 rounded-md">
-                                <Tag className="w-2.5 h-2.5" />
-                                {comp}
-                              </span>
-                            ))}
-                          </div>
-                        )}
                       </div>
 
-                      {/* Salary Display */}
-                      <div className="flex-shrink-0">
-                        <div className="bg-green-50/60 border border-green-200/60 rounded-xl p-3 text-right">
-                          <p className="text-[9px] text-green-700 font-bold uppercase tracking-wider mb-0.5 flex items-center justify-end gap-1">
-                            <DollarSign className="w-3 h-3" /> Salario Transparente
-                          </p>
-                          <p className="text-base font-black text-green-800">
-                            S/ {job.salario_min.toLocaleString('es-PE')} - S/ {job.salario_max.toLocaleString('es-PE')}
-                          </p>
-                        </div>
+                      {/* Clean Salary Display */}
+                      <div className="md:text-right shrink-0">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 md:mb-0.5">Rango Salarial</p>
+                        <p className="text-[15px] font-bold text-slate-800 bg-slate-50/80 px-3 py-1.5 rounded-lg border border-slate-200/60 inline-block">
+                          S/ {job.salario_min.toLocaleString('es-PE')} - S/ {job.salario_max.toLocaleString('es-PE')}
+                        </p>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs bg-gray-50/60 p-4 rounded-xl border border-gray-150">
-                      <div>
-                        <strong className="text-xs text-gray-800 block mb-1">Requisitos:</strong>
-                        <p className="text-gray-650 leading-relaxed whitespace-pre-line">{job.requisitos}</p>
+                    {/* Clean Tags: Vacancies & Competencies */}
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className="inline-flex items-center text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">
+                        {job.vacantes || 1} vacante{(job.vacantes || 1) !== 1 ? 's' : ''}
+                      </span>
+                      {job.competencias?.map((comp) => (
+                        <span key={comp} className="inline-flex items-center text-[10px] font-medium px-2.5 py-1 rounded-full bg-slate-50 border border-slate-200 text-slate-600">
+                          {comp}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Requirements & Functions Content */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+                      <div className="space-y-1.5">
+                        <strong className="text-[11px] font-bold text-slate-900 uppercase tracking-wider">Requisitos</strong>
+                        <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line line-clamp-3">{job.requisitos}</p>
                       </div>
-                      <div>
-                        <strong className="text-xs text-gray-800 block mb-1">Funciones Principales:</strong>
-                        <p className="text-gray-650 leading-relaxed whitespace-pre-line">{job.funciones || 'No especificadas'}</p>
+                      <div className="space-y-1.5">
+                        <strong className="text-[11px] font-bold text-slate-900 uppercase tracking-wider">Funciones Principales</strong>
+                        <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line line-clamp-3">{job.funciones || 'No especificadas'}</p>
                       </div>
                     </div>
 
-                    {/* Job Management Actions */}
-                    <div className="flex flex-wrap items-center justify-between pt-2 border-t border-gray-100 gap-2">
-                      <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
-                        <Users className="w-4 h-4 text-gray-400" />
+                    {/* Clean Job Management Actions */}
+                    <div className="flex flex-wrap items-center justify-between pt-5 mt-2 border-t border-slate-100 gap-4">
+                      <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+                        <Users className="w-4 h-4 text-slate-400" />
                         <span>{job.applications?.length || 0} Egresado{(job.applications?.length || 0) !== 1 ? 's' : ''} postulando</span>
                       </div>
                       
-                      <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-3">
                         {/* Employer Job Status Management */}
                         {job.status === 'APPROVED' && (
                           <button
@@ -984,9 +1050,8 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
                                 await updateEmployerJobStatus({ id: job.id, status: 'CLOSED' });
                               }
                             }}
-                            className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 transition-colors"
+                            className="inline-flex items-center text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors"
                           >
-                            <XCircle className="w-3 h-3" />
                             Cerrar Oferta
                           </button>
                         )}
@@ -996,9 +1061,8 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
                             onClick={async () => {
                               await updateEmployerJobStatus({ id: job.id, status: 'APPROVED' });
                             }}
-                            className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg border border-green-200 bg-green-50 text-green-800 hover:bg-green-100 transition-colors"
+                            className="inline-flex items-center text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors"
                           >
-                            <RefreshCw className="w-3 h-3" />
                             Reactivar
                           </button>
                         )}
@@ -1009,24 +1073,25 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
                               await deleteJob(job.id);
                             }
                           }}
-                          className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg border border-red-200 bg-red-50 text-red-800 hover:bg-red-100 transition-colors"
+                          className="inline-flex items-center text-xs font-medium text-red-500 hover:text-red-700 transition-colors mr-1"
                         >
-                          <Trash2 className="w-3 h-3" />
                           Eliminar
                         </button>
+                        
+                        {/* Primary View Applicants Action */}
                         <button
                           type="button"
                           onClick={() => toggleApplicants(job.id)}
-                          className={`inline-flex items-center gap-1 text-xs font-bold transition-all px-3 py-1.5 rounded-lg border ${
+                          className={`inline-flex items-center gap-1.5 text-xs font-bold transition-all px-4 py-2 rounded-lg ${
                             isExpanded
-                              ? 'bg-red-50 text-red-800 border-red-200'
-                              : 'bg-white text-gray-700 border-gray-250 hover:bg-gray-55'
+                              ? 'bg-slate-100 text-slate-800'
+                              : 'bg-slate-900 text-white hover:bg-slate-800 shadow-sm'
                           }`}
                         >
                           {isExpanded ? (
-                            <>Ocultar Postulantes <ChevronUp className="w-4 h-4" /></>
+                            <>Ocultar Postulantes <ChevronUp className="w-3.5 h-3.5" /></>
                           ) : (
-                            <>Ver Postulantes <ChevronDown className="w-4 h-4" /></>
+                            <>Ver Postulantes <ChevronDown className="w-3.5 h-3.5" /></>
                           )}
                         </button>
                       </div>
@@ -1186,6 +1251,7 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

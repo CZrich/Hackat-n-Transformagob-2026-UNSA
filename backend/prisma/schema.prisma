@@ -33,6 +33,14 @@ enum ApplicationStatus {
   PROCESS_FINISHED
 }
 
+enum EventType {
+  FERIA
+  CURSO
+  BECA
+  CONVOCATORIA
+  OTRO
+}
+
 model User {
   id           String            @id @default(uuid())
   email        String            @unique
@@ -45,6 +53,7 @@ model User {
   applications Application[]
   profile      GraduateProfile?
   ratings_given CompanyRating[]
+  events       Event[]           @relation("AdminEvents")
 }
 
 model Company {
@@ -138,4 +147,18 @@ model Application {
   user User @relation(fields: [userId], references: [id])
 
   @@unique([jobId, userId])
+}
+
+model Event {
+  id          String    @id @default(uuid())
+  title       String
+  description String
+  type        EventType
+  date        DateTime
+  location    String?
+  link        String?
+  image_url   String?
+  created_at  DateTime  @default(now())
+  created_by  String
+  admin       User      @relation("AdminEvents", fields: [created_by], references: [id])
 }

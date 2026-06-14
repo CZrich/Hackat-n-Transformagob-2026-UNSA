@@ -16,8 +16,8 @@ export class AdminController {
   }
 
   @Patch('companies/:id/verify')
-  verifyCompany(@Param('id') id: string) {
-    return this.adminService.verifyCompany(id);
+  verifyCompany(@Param('id') id: string, @Body('es_verificada') esVerificada: boolean) {
+    return this.adminService.verifyCompany(id, esVerificada);
   }
 
   @Patch('companies/:id/ban')

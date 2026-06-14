@@ -15,12 +15,7 @@ export class UsersController {
     private readonly prisma: PrismaService,
   ) {}
 
-  @Get(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
-  async findById(@Param('id') id: string) {
-    return this.usersService.findById(id);
-  }
+
 
   @Get('profile')
   @UseGuards(JwtAuthGuard)
@@ -76,5 +71,12 @@ export class UsersController {
   @Roles('EGRESADO')
   async getGraduateProfile(@Req() req: any) {
     return this.usersService.getGraduateProfile(req.user.sub);
+  }
+
+  @Get(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  async findById(@Param('id') id: string) {
+    return this.usersService.findById(id);
   }
 }

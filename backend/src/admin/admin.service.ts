@@ -16,7 +16,7 @@ export class AdminService {
     });
   }
 
-  async verifyCompany(companyId: string) {
+  async verifyCompany(companyId: string, esVerificada: boolean) {
     const company = await this.prisma.company.findUnique({
       where: { id: companyId },
       include: { user: true },
@@ -28,15 +28,21 @@ export class AdminService {
 
     const updated = await this.prisma.company.update({
       where: { id: companyId },
-      data: { es_verificada: true },
+      data: { es_verificada: esVerificada },
     });
 
-    await this.prisma.job.updateMany({
-      where: { company_id: companyId, status: 'PENDING' },
-      data: { status: 'APPROVED' },
-    });
-
-    await this.notification.notifyCompanyVerified(company.user);
+    if (esVerificada) {
+      await this.prisma.job.updateMany({
+        where: { company_id: companyId, status: 'PENDING' },
+        data: { status: 'APPROVED' },
+      });
+      await this.notification.notifyCompanyVerified(company.user);
+    } else {
+      await this.prisma.job.updateMany({
+        where: { company_id: companyId, status: 'APPROVED' },
+        data: { status: 'PENDING' },
+      });
+    }
 
     return updated;
   }

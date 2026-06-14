@@ -41,6 +41,8 @@ export interface Job {
   vacantes?: number;
   fecha_inicio?: string;
   fecha_cierre?: string;
+  fecha_fin?: string;
+  perfil?: string;
   lugar?: string;
   funciones?: string;
   informacion_adicional?: string;
