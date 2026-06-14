@@ -74,7 +74,7 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
   const [expandedJobApplicants, setExpandedJobApplicants] = useState<Record<string, boolean>>({});
 
   // Check if profile is incomplete (e.g. registered via Google and has no corporate fields yet)
-  const isProfileIncomplete = !user.ruc || !user.rubro || !user.telefono;
+  const isProfileIncomplete = !user.ruc || !user.rubro || !user.contacto_telefono;
 
   // Complete profile state
   const [completeForm, setCompleteForm] = useState({
@@ -82,7 +82,7 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
     ruc: user.ruc || '',
     contact_name: user.contact_name || '',
     rubro: user.rubro || '',
-    telefono: user.telefono || ''
+    telefono: user.contacto_telefono || ''
   });
   const [completeErrors, setCompleteErrors] = useState<Record<string, string>>({});
   const [savingProfile, setSavingProfile] = useState(false);
@@ -130,30 +130,22 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
     }
 
     setSavingProfile(true);
-    setTimeout(() => {
-      const updatedUser: User = {
-        ...user,
+    try {
+      const payload = {
         name: completeForm.company_name.trim(),
         ruc: completeForm.ruc.trim(),
         contact_name: completeForm.contact_name.trim(),
         rubro: completeForm.rubro.trim(),
-        telefono: completeForm.telefono.trim(),
-        es_verificada: false, // Default to false till Admin verifies it
-        es_baneada: false
+        contacto_telefono: completeForm.telefono.trim()
       };
-
-      // Update in mock registered list
-      const localRaw = localStorage.getItem('mock_registered_users') || '[]';
-      try {
-        const localUsers = JSON.parse(localRaw);
-        const updatedList = localUsers.map((u: any) => u.email.toLowerCase() === user.email.toLowerCase() ? updatedUser : u);
-        localStorage.setItem('mock_registered_users', JSON.stringify(updatedList));
-      } catch {}
-
+      await api.auth.updateProfile(payload);
+      const updatedUser = await api.auth.getProfile();
       localStorage.setItem('user', JSON.stringify(updatedUser));
-      setSavingProfile(false);
       window.location.reload();
-    }, 1000);
+    } catch (err: any) {
+      alert(err.message || 'Error al completar perfil');
+      setSavingProfile(false);
+    }
   };
 
   const handleCompleteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -311,13 +303,13 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
   };
 
   const [profileForm, setProfileForm] = useState({
-    name: user?.company?.name || user?.name || '',
-    ruc: user?.company?.ruc || '',
-    rubro: user?.company?.rubro || '',
-    direccion: user?.company?.direccion || '',
-    horario: user?.company?.horario || '',
-    contacto_telefono: '',
-    contacto_email: user?.email || '',
+    name: user?.name || '',
+    ruc: user?.ruc || '',
+    rubro: user?.rubro || '',
+    direccion: user?.direccion || '',
+    horario: user?.horario || '',
+    contacto_telefono: user?.contacto_telefono || '',
+    contacto_email: user?.contacto_email || user?.email || '',
   });
   const [savingCompanyProfile, setSavingCompanyProfile] = useState(false);
 
@@ -356,7 +348,25 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
       })) {
         if (value) payload[key] = value;
       }
-      await api.auth.updateProfile(payload);
+      const rawUser: any = await api.auth.updateProfile(payload);
+      const c = rawUser.company;
+      const flattened = {
+        id: rawUser.id,
+        email: rawUser.email,
+        name: rawUser.name,
+        role: rawUser.role,
+        ruc: c?.ruc,
+        rubro: c?.rubro,
+        direccion: c?.direccion,
+        horario: c?.horario,
+        contacto_telefono: c?.contacto_telefono,
+        contacto_email: c?.contacto_email,
+        es_verificada: c?.es_verificada,
+        es_baneada: c?.es_baneada,
+        rating_promedio: c?.rating_promedio,
+        total_votos: c?.total_votos,
+      };
+      localStorage.setItem('user', JSON.stringify(flattened));
       window.location.reload();
     } catch (err: any) {
       alert(err.message || 'Error al guardar perfil');
@@ -494,25 +504,25 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
             Crea ofertas laborales estructuradas en base a competencias para reclutar egresados de la UNSA de manera transparente.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto md:justify-end">
           <Button
             onClick={() => {
               setShowForm(false);
               setShowProfile(!showProfile);
             }}
-            className="bg-white/90 text-red-950 hover:bg-amber-100 font-bold shadow-md rounded-xl py-2.5 text-xs"
+            className="w-full sm:w-auto bg-white/90 text-red-950 hover:bg-amber-100 font-bold shadow-md rounded-xl py-2.5 px-5 text-xs transition-all border border-transparent hover:border-amber-200"
           >
-            <Settings className="w-4 h-4 mr-1" />
-            Mi Empresa
+            <Settings className="w-4 h-4 mr-1.5" />
+            Configuración de Empresa
           </Button>
           <Button
             onClick={() => {
               setShowProfile(false);
               setShowForm(!showForm);
             }}
-            className="bg-white text-red-950 hover:bg-amber-100 font-bold shadow-md rounded-xl py-2.5 text-xs"
+            className="w-full sm:w-auto bg-amber-400 text-amber-950 hover:bg-amber-300 font-bold shadow-md rounded-xl py-2.5 px-5 text-xs transition-all border border-amber-500 hover:border-amber-400"
           >
-            <Plus className="w-4 h-4 mr-1" />
+            <Plus className="w-4 h-4 mr-1.5" />
             {showForm ? 'Cerrar Formulario' : 'Nueva Convocatoria'}
           </Button>
         </div>

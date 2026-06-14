@@ -65,14 +65,14 @@ export class UsersController {
   }
 
   @Put('graduate-profile')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('EGRESADO')
   async updateGraduateProfile(@Req() req: any, @Body() body: any) {
     return this.usersService.updateGraduateProfile(req.user.sub, body);
   }
 
   @Get('graduate-profile')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('EGRESADO')
   async getGraduateProfile(@Req() req: any) {
     return this.usersService.getGraduateProfile(req.user.sub);
