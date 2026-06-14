@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
-import { GraduationCap, Building2, Shield, Mail, Lock, Phone, User as UserIcon, AlertCircle, X } from 'lucide-react';
+import { GraduationCap, Building2, Shield, Mail, Lock, Phone, User as UserIcon, AlertCircle, X, Eye, EyeOff, Key } from 'lucide-react';
 import { CARRERAS, GOOGLE_CLIENT_ID } from '../config';
 import { api } from '../services/api';
 import Button from '../components/ui/Button';
@@ -26,6 +26,7 @@ export default function Login({ onLogin }: LoginProps) {
   // Login form fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   // Register form fields (Egresado)
   const [egresadoForm, setEgresadoForm] = useState({
@@ -333,8 +334,8 @@ export default function Login({ onLogin }: LoginProps) {
 
         {/* Branding Header */}
         <div className="flex items-center gap-3 relative z-10">
-          <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
-            <GraduationCap className="w-6 h-6 text-amber-400" />
+          <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg border border-white/20 flex-shrink-0 bg-white">
+            <img src="/udeeg.jpeg" alt="Logo UDEEG" className="w-full h-full object-cover" />
           </div>
           <div>
             <span className="font-extrabold tracking-wider text-lg">CONECTA UNSA</span>
@@ -505,14 +506,22 @@ export default function Login({ onLogin }: LoginProps) {
                       <div className="space-y-1">
                         <label className="block text-xs font-semibold text-gray-700">Contraseña</label>
                         <div className="relative">
-                          <Lock className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                           <input
-                            type="password"
-                            placeholder="••••••••"
+                            type={showPassword ? "text" : "password"}
+                            required
                             value={password}
-                            onChange={e => setPassword(e.target.value)}
-                            className="pl-9 block w-full rounded-xl border border-gray-300 px-3 py-2 text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors h-10 bg-white"
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-red-600/20 focus:border-red-600 transition-all font-medium"
+                            placeholder="••••••••"
                           />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                          >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
                         </div>
                       </div>
 
@@ -536,11 +545,40 @@ export default function Login({ onLogin }: LoginProps) {
                           onClick={handleGoogleClick}
                           className="w-full flex items-center justify-center gap-2 border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-2 rounded-xl text-xs transition-colors h-10 shadow-3xs bg-white"
                         >
-                          <svg className="w-4 h-4 fill-current mr-1" viewBox="0 0 24 24">
-                            <path d="M12.24 10.285V13.4h6.887c-.275 1.565-1.88 4.604-6.887 4.604-4.33 0-7.859-3.578-7.859-8s3.53-8 7.859-8c2.46 0 4.105 1.025 5.047 1.926l2.427-2.334C17.955 2.192 15.34 1 12.24 1 6.033 1 12.24 6.033 12.24 12.24s5.033 11.24 11.24 11.24c6.478 0 10.793-4.537 10.793-10.985 0-.74-.08-1.302-.178-1.86H12.24z"/>
-                          </svg>
+                          <img src="/search.png" alt="Google Logo" className="w-4 h-4 mr-1 object-contain" />
                           Continuar con Google
                         </button>
+                        <div className="pt-4 mt-6 border-t border-gray-100">
+                          <div className="mb-3 flex items-center justify-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                            <Key className="w-3 h-3" /> Credenciales de Prueba Rápida
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => { setSelectedRole('EGRESADO'); setEmail('jperez@unsa.edu.pe'); setPassword('123456'); }}
+                              className="flex flex-col items-center justify-center py-2 px-1 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 transition-colors text-[10px] font-bold text-gray-600"
+                            >
+                              <GraduationCap className="w-4 h-4 mb-1 text-gray-400" />
+                              Egresado
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { setSelectedRole('EMPLEADOR'); setEmail('contacto@techsolutions.pe'); setPassword('123456'); }}
+                              className="flex flex-col items-center justify-center py-2 px-1 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 transition-colors text-[10px] font-bold text-gray-600"
+                            >
+                              <Building2 className="w-4 h-4 mb-1 text-gray-400" />
+                              Empresa
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { setSelectedRole('ADMIN'); setEmail('admin@unsa.edu.pe'); setPassword('admin123'); }}
+                              className="flex flex-col items-center justify-center py-2 px-1 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 transition-colors text-[10px] font-bold text-gray-600"
+                            >
+                              <Shield className="w-4 h-4 mb-1 text-gray-400" />
+                              Admin
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </form>
                   )}

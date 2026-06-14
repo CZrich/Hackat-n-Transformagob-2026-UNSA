@@ -109,6 +109,67 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
   const [submittingRating, setSubmittingRating] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+  const [feedSource, setFeedSource] = useState<'UDEEG' | 'EXTERNAL'>('UDEEG');
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // MOCK DATA for external jobs
+  const EXTERNAL_JOBS: any[] = [
+    {
+      id: 'ext-1',
+      title: 'Desarrollador Full Stack',
+      company_name: 'Amazon via LinkedIn',
+      carrera_destino: 'Ingeniería de Sistemas',
+      competencias: ['React', 'Node.js', 'AWS', 'TypeScript'],
+      salario_min: 4000,
+      salario_max: 7000,
+      lugar: 'Remoto',
+      fecha_fin: '2026-08-01T00:00:00Z',
+      requisitos: 'Experiencia previa con React y AWS. Nivel de inglés avanzado.',
+      external_url: 'https://linkedin.com'
+    },
+    {
+      id: 'ext-2',
+      title: 'Analista de Datos Empresariales',
+      company_name: 'BCP via Computrabajo',
+      carrera_destino: 'Ingeniería de Sistemas',
+      competencias: ['Bases de Datos', 'Microsoft Excel', 'Python'],
+      salario_min: 2500,
+      salario_max: 3500,
+      lugar: 'San Isidro, Lima',
+      fecha_fin: '2026-07-15T00:00:00Z',
+      requisitos: 'Egresado de sistemas o afines con fuertes conocimientos analíticos.',
+      external_url: 'https://computrabajo.com.pe'
+    },
+    {
+      id: 'ext-3',
+      title: 'Supervisor de Planta Industrial',
+      company_name: 'Gloria S.A. via Bumeran',
+      carrera_destino: 'Ingeniería Industrial',
+      competencias: ['Logística', 'Optimización de Procesos', 'Liderazgo'],
+      salario_min: 3000,
+      salario_max: 5000,
+      lugar: 'Arequipa, Perú',
+      fecha_fin: '2026-06-30T00:00:00Z',
+      requisitos: 'Bachiller en Ingeniería Industrial con experiencia en planta.',
+      external_url: 'https://bumeran.com.pe'
+    },
+    {
+      id: 'ext-4',
+      title: 'Auditor Contable Junior',
+      company_name: 'PwC via Indeed',
+      carrera_destino: 'Contabilidad',
+      competencias: ['Finanzas', 'Microsoft Excel', 'Proactividad'],
+      salario_min: 1500,
+      salario_max: 2000,
+      lugar: 'Arequipa, Perú',
+      fecha_fin: '2026-07-10T00:00:00Z',
+      requisitos: 'Recién egresado con ganas de aprender y proactividad.',
+      external_url: 'https://pe.indeed.com'
+    }
+  ];
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -118,6 +179,9 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
           api.events.list().catch(() => []),
         ]);
         if (gp) {
+          if (!gp.carrera || gp.carrera.trim() === '') {
+            setShowOnboarding(true);
+          }
           setGraduateProfile(gp);
           setProfileForm({
             name: user.name,
@@ -258,6 +322,7 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
       }
 
       showFeedback('¡Perfil guardado y sincronizado con éxito!');
+      setShowOnboarding(false);
     } catch (error: any) {
       showFeedback(error.message || 'Error al guardar el perfil');
     } finally {
@@ -369,6 +434,70 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
 
   return (
     <div className="space-y-8 font-sans max-w-6xl mx-auto">
+      {showOnboarding && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200">
+            <div className="bg-red-800 p-6 text-center text-white relative overflow-hidden">
+              <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 rounded-full bg-red-700 opacity-50"></div>
+              <GraduationCap className="w-12 h-12 mx-auto mb-3 text-red-200 relative z-10" />
+              <h2 className="text-xl font-black relative z-10">¡Bienvenido a Conecta UNSA!</h2>
+              <p className="text-red-100 text-sm font-medium mt-1 relative z-10">
+                Para mostrarte las ofertas adecuadas necesitamos conocer tu carrera.
+              </p>
+            </div>
+            
+            <div className="p-6">
+              <form onSubmit={handleProfileSubmit} className="space-y-5">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Escuela Profesional <span className="text-red-500">*</span></label>
+                  <div className="relative">
+                    <select
+                      required
+                      value={profileForm.carrera}
+                      onChange={e => setProfileForm({ ...profileForm, carrera: e.target.value })}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 font-medium appearance-none focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
+                    >
+                      <option value="">Selecciona tu carrera...</option>
+                      {CARRERAS.map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                    <ChevronRight className="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 rotate-90 pointer-events-none" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Teléfono (9 dígitos) <span className="text-red-500">*</span></label>
+                  <Input
+                    required
+                    type="tel"
+                    pattern="\d{9}"
+                    placeholder="987654321"
+                    value={profileForm.telefono}
+                    onChange={e => setProfileForm({ ...profileForm, telefono: e.target.value })}
+                    className="bg-slate-50 border-slate-200"
+                  />
+                </div>
+
+                {feedbackMsg && (
+                  <p className="text-xs font-bold text-red-600 bg-red-50 p-2 rounded-lg text-center">
+                    {feedbackMsg}
+                  </p>
+                )}
+
+                <Button 
+                  type="submit" 
+                  disabled={savingProfile || !profileForm.carrera || profileForm.telefono.length !== 9}
+                  className="w-full bg-red-800 hover:bg-red-900 text-white font-bold rounded-xl py-3 shadow-md mt-2"
+                >
+                  {savingProfile ? 'Guardando...' : 'Comenzar a explorar'}
+                </Button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center text-red-800 font-black text-xl shadow-inner">
@@ -389,18 +518,18 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
           </div>
         </div>
 
-        <div className="flex items-center gap-6 border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-6">
-          <div className="text-center md:text-left">
-            <span className="text-2xl font-black text-gray-900">{jobs.length}</span>
-            <span className="text-[10px] font-bold text-gray-400 block uppercase tracking-wider">Ofertas</span>
+        <div className="grid grid-cols-3 gap-3 md:gap-4 border-t md:border-t-0 md:border-l border-slate-100 pt-5 md:pt-0 md:pl-6">
+          <div className="flex flex-col justify-center bg-slate-50 border border-slate-200 rounded-xl p-3 md:p-4 text-center md:text-left shadow-sm">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Ofertas Disponibles</span>
+            <span className="text-2xl font-bold text-slate-900 leading-none">{jobs.length}</span>
           </div>
-          <div className="text-center md:text-left">
-            <span className="text-2xl font-black text-green-700">{appliedJobs.length}</span>
-            <span className="text-[10px] font-bold text-gray-400 block uppercase tracking-wider">Postulaciones</span>
+          <div className="flex flex-col justify-center bg-slate-50 border border-slate-200 rounded-xl p-3 md:p-4 text-center md:text-left shadow-sm">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Postulaciones</span>
+            <span className="text-2xl font-bold text-blue-600 leading-none">{appliedJobs.length}</span>
           </div>
-          <div className="text-center md:text-left">
-            <span className="text-2xl font-black text-purple-700">{applications.filter(a => a.status === 'ACCEPTED').length}</span>
-            <span className="text-[10px] font-bold text-gray-400 block uppercase tracking-wider">Ganadas</span>
+          <div className="flex flex-col justify-center bg-slate-50 border border-slate-200 rounded-xl p-3 md:p-4 text-center md:text-left shadow-sm">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Procesos Ganados</span>
+            <span className="text-2xl font-bold text-emerald-600 leading-none">{applications.filter(a => a.status === 'ACCEPTED').length}</span>
           </div>
         </div>
       </div>
@@ -467,61 +596,63 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
       {activeTab === 'FEED' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-1 space-y-6">
-            <Card className="border border-gray-200 shadow-xs bg-gray-50/25">
-              <CardHeader className="border-b border-gray-150 py-3.5 px-5 bg-white">
-                <h3 className="font-extrabold text-sm text-gray-900 flex items-center gap-1.5">
-                  <UserIcon className="w-4 h-4 text-red-850" /> Mi Resumen
+            <Card className="border border-slate-200 shadow-sm bg-white rounded-2xl overflow-hidden">
+              <CardHeader className="border-b border-slate-100 py-4 px-5 bg-slate-50/50">
+                <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                  <UserIcon className="w-4 h-4 text-slate-400" /> Mi Resumen
                 </h3>
               </CardHeader>
-              <CardContent className="p-5 space-y-4">
-                <div className="space-y-1.5">
-                  <span className="text-[10px] font-black text-gray-400 block uppercase tracking-wider">Habilidades:</span>
-                  <div className="flex flex-wrap gap-1">
+              <CardContent className="p-5 space-y-5">
+                <div className="space-y-2">
+                  <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Habilidades:</span>
+                  <div className="flex flex-wrap gap-1.5">
                     {profileForm.skills.map(s => (
-                      <span key={s} className="bg-white border border-gray-200 text-gray-800 text-[10px] font-bold px-2 py-0.5 rounded-lg shadow-3xs">
+                      <span key={s} className="bg-slate-50 border border-slate-200 text-slate-700 text-[10px] font-semibold px-2.5 py-1 rounded-full">
                         {s}
                       </span>
                     ))}
-                    {profileForm.skills.length === 0 && <span className="text-xs text-gray-400">Sin habilidades registradas</span>}
+                    {profileForm.skills.length === 0 && <span className="text-xs text-slate-400">Sin habilidades registradas</span>}
                   </div>
                 </div>
 
-                <div className="space-y-1">
-                  <span className="text-[10px] font-black text-gray-400 block uppercase tracking-wider">CV:</span>
-                  <div className="flex items-center gap-2 p-2 bg-white rounded-xl border border-gray-150 text-xs text-gray-700 font-semibold shadow-3xs">
-                    <FileText className="w-4 h-4 text-red-700 flex-shrink-0" />
+                <div className="space-y-2">
+                  <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Curriculum (CV):</span>
+                  <div className="flex items-center gap-2.5 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-700 font-semibold transition-colors hover:bg-slate-100">
+                    <FileText className="w-4 h-4 text-blue-600 flex-shrink-0" />
                     {profileForm.cv_url ? (
-                      <a href={profileForm.cv_url} target="_blank" rel="noopener noreferrer" className="truncate flex-1 text-blue-700 underline hover:text-blue-900">{profileForm.cv_name}</a>
+                      <a href={profileForm.cv_url} target="_blank" rel="noopener noreferrer" className="truncate flex-1 hover:text-blue-700 transition-colors">{profileForm.cv_name}</a>
                     ) : (
-                      <span className="truncate flex-1">{profileForm.cv_name || 'No subido'}</span>
+                      <span className="truncate flex-1 text-slate-500">{profileForm.cv_name || 'No subido'}</span>
                     )}
                   </div>
                 </div>
 
-                <div className="text-[10px] text-gray-400 border-t border-gray-150 pt-3 flex items-start gap-1 leading-normal">
-                  <Sparkles className="w-4 h-4 text-amber-500 flex-shrink-0" />
-                  <span>Las ofertas se filtran según tu carrera y habilidades registradas.</span>
+                <div className="text-[10px] text-slate-500 pt-1 flex items-start gap-1.5 leading-relaxed">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
+                  <span>Las ofertas se priorizan mágicamente según tu carrera y habilidades registradas.</span>
                 </div>
               </CardContent>
             </Card>
 
             {appliedJobs.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
-                  <FileCheck className="w-4 h-4 text-gray-500" /> Postulaciones Recientes
+              <div className="space-y-4">
+                <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5 px-1">
+                  <FileCheck className="w-3.5 h-3.5" /> Actividad Reciente
                 </h3>
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   {jobs.filter(j => appliedJobs.includes(j.id)).slice(0, 3).map(job => {
                     const app = applications.find(a => a.jobId === job.id);
                     const statusInfo = app ? STATUS_LABELS[app.status] : STATUS_LABELS.PENDING;
                     const StatusIcon = statusInfo.icon;
                     return (
-                      <div key={job.id} className="p-3.5 bg-white border border-gray-250 rounded-xl flex items-center justify-between gap-4 shadow-3xs hover:border-gray-300 transition-colors">
-                        <div className="truncate">
-                          <h4 className="text-xs font-extrabold text-gray-950 truncate">{job.title}</h4>
-                          <p className="text-[10px] text-gray-450 font-semibold truncate">{job.company_name}</p>
+                      <div key={job.id} className="p-4 bg-white border border-slate-200 rounded-xl flex flex-col gap-2.5 shadow-sm hover:border-slate-300 transition-all">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="truncate">
+                            <h4 className="text-xs font-bold text-slate-900 truncate">{job.title}</h4>
+                            <p className="text-[10px] text-slate-500 font-medium truncate mt-0.5">{job.company_name}</p>
+                          </div>
                         </div>
-                        <span className={`flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold border ${statusInfo.color}`}>
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[9px] font-bold border self-start ${statusInfo.color.replace('red', 'amber')}`}>
                           <StatusIcon className="w-3 h-3" /> {statusInfo.label}
                         </span>
                       </div>
@@ -533,22 +664,22 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
 
             {/* Events Section */}
             {events.length > 0 && (
-              <div className="space-y-3 pt-2">
-                <h3 className="text-xs font-black text-amber-600 uppercase tracking-widest flex items-center gap-1.5">
-                  <Calendar className="w-4 h-4 text-amber-500" /> Eventos & Novedades
+              <div className="space-y-4 pt-2">
+                <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5 px-1">
+                  <Calendar className="w-3.5 h-3.5" /> Eventos de la bolsa
                 </h3>
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   {events.slice(0, 4).map(event => (
                     <div 
                       key={event.id} 
                       onClick={() => setSelectedEventForModal(event)}
-                      className="p-3.5 bg-amber-50/40 border border-amber-100 rounded-xl flex items-center justify-between gap-4 shadow-3xs cursor-pointer hover:border-amber-300 hover:bg-amber-50/80 transition-colors"
+                      className="group p-4 bg-white border border-slate-200 rounded-xl flex items-center justify-between gap-3 shadow-sm cursor-pointer hover:border-slate-300 hover:shadow-md transition-all"
                     >
                       <div className="truncate">
-                        <h4 className="text-xs font-extrabold text-amber-950 truncate">{event.title}</h4>
-                        <p className="text-[10px] text-amber-700 font-semibold truncate">{new Date(event.date).toLocaleDateString('es-PE')} • {event.type}</p>
+                        <h4 className="text-xs font-bold text-slate-900 truncate group-hover:text-blue-600 transition-colors">{event.title}</h4>
+                        <p className="text-[10px] text-slate-500 font-medium truncate mt-0.5">{new Date(event.date).toLocaleDateString('es-PE')} • {event.type}</p>
                       </div>
-                      <ChevronRight className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                      <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 transition-colors flex-shrink-0" />
                     </div>
                   ))}
                 </div>
@@ -570,124 +701,137 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
               </div>
             )}
 
-            {!loading && !error && jobs.length === 0 && (
-              <div className="text-center py-16 bg-white border border-gray-200 rounded-2xl">
+            <div className="flex bg-slate-100 p-1 rounded-xl w-full max-w-[400px] mb-2 shadow-inner border border-slate-200">
+              <button 
+                onClick={() => { setFeedSource('UDEEG'); setCurrentPage(1); }} 
+                className={`flex-1 text-xs font-extrabold py-2.5 rounded-lg transition-all ${feedSource === 'UDEEG' ? 'bg-white text-red-800 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                Convocatorias UNSA
+              </button>
+              <button 
+                onClick={() => { setFeedSource('EXTERNAL'); setCurrentPage(1); }} 
+                className={`flex-1 text-xs font-extrabold py-2.5 rounded-lg transition-all ${feedSource === 'EXTERNAL' ? 'bg-white text-red-800 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                Portales Externos
+              </button>
+            </div>
+
+            {!loading && !error && (feedSource === 'UDEEG' ? jobs : EXTERNAL_JOBS).length === 0 && (
+              <div className="text-center py-16 bg-white border border-gray-200 rounded-2xl mt-4">
                 <Briefcase className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="font-bold text-gray-700 text-base">No hay convocatorias disponibles</p>
+                <p className="font-bold text-gray-700 text-base">No hay convocatorias disponibles en esta sección</p>
                 <p className="text-xs text-gray-400 mt-1">
-                  No se registran ofertas para <strong className="text-gray-600 font-bold">{profileForm.carrera || user.carrera}</strong>.
+                  Intenta revisar en la otra fuente o más tarde.
                 </p>
               </div>
             )}
 
-            {!loading && !error && jobs.length > 0 && (
-              <div className="space-y-4">
-                {jobs.map((job) => {
-                  const matchScore = calculateMatch(job);
-                  let matchBadgeStyle = 'bg-red-50 text-red-800 border-red-100';
-                  if (matchScore >= 80) matchBadgeStyle = 'bg-green-50 text-green-800 border-green-200';
-                  else if (matchScore >= 50) matchBadgeStyle = 'bg-amber-50 text-amber-800 border-amber-200';
+            {!loading && !error && (feedSource === 'UDEEG' ? jobs : EXTERNAL_JOBS).length > 0 && (
+              <div className="space-y-4 mt-4">
+                {(() => {
+                  const activeSourceJobs = feedSource === 'UDEEG' ? jobs : EXTERNAL_JOBS;
+                  const sortedFeedJobs = [...activeSourceJobs].sort((a, b) => calculateMatch(b) - calculateMatch(a));
+                  const totalPages = Math.ceil(sortedFeedJobs.length / itemsPerPage);
+                  const paginatedFeedJobs = sortedFeedJobs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
                   return (
-                    <Card key={job.id} className="hover:shadow-md transition-shadow border border-gray-200 bg-white">
-                      <CardContent className="p-5 space-y-4">
-                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="text-lg font-extrabold text-gray-900 tracking-tight">{job.title}</h3>
+                    <>
+                      {paginatedFeedJobs.map((job) => {
+                        const matchScore = calculateMatch(job);
+
+                        return (
+                          <Card key={job.id} className="group border border-slate-200 hover:border-slate-300 hover:shadow-sm bg-white overflow-hidden rounded-2xl transition-all duration-200">
+                      <CardContent className="p-6 space-y-5">
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-2.5 flex-wrap">
+                              <h3 className="text-lg font-bold text-slate-900 tracking-tight">{job.title}</h3>
                               {!viewedJobs.includes(job.id) && (
-                                <span className="px-2 py-0.5 rounded-md text-[9px] font-black bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-3xs uppercase tracking-widest">
+                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-100 uppercase tracking-widest">
                                   Nuevo
                                 </span>
                               )}
                             </div>
-                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500 font-semibold">
-                              <span className="flex items-center gap-1">
-                                <Building className="w-3.5 h-3.5 text-gray-400" /> {job.company_name}
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-semibold text-slate-500">
+                              <span className="flex items-center gap-1.5">
+                                <Building className="w-3.5 h-3.5 text-slate-400" /> {job.company_name}
                               </span>
                             </div>
                           </div>
 
-                          <div className={`px-2.5 py-1 rounded-full text-xs font-bold border ${matchBadgeStyle} self-start flex items-center gap-1 shadow-2xs`}>
-                            <Sparkles className="w-3 h-3" />
-                            <span>Match {matchScore}%</span>
+                            <div className="flex flex-col gap-1 items-end">
+                              <div className={`px-3 py-1.5 rounded-lg text-xs font-bold border flex items-center gap-1.5 shadow-sm ${matchScore >= 80 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : matchScore >= 50 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>
+                                <Sparkles className="w-3.5 h-3.5" />
+                                <span>Match Skills {matchScore}%</span>
+                              </div>
+                              <div className="px-3 py-1 rounded-lg text-[10px] font-bold border bg-blue-50 text-blue-700 border-blue-200 flex items-center gap-1 shadow-sm">
+                                <CheckCircle2 className="w-3 h-3" />
+                                <span>Match Carrera 100%</span>
+                              </div>
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-gray-400 font-medium">
-                          <span className="flex items-center gap-1">
-                            <MapPin className="w-3.5 h-3.5 text-gray-300" /> {job.lugar || 'Arequipa'}
+                        <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-slate-500">
+                          <span className="flex items-center gap-1.5">
+                            <MapPin className="w-3.5 h-3.5 text-slate-400" /> {job.lugar || 'Arequipa'}
                           </span>
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-3.5 h-3.5 text-gray-300" /> Cierre: {job.fecha_fin ? new Date(job.fecha_fin).toLocaleDateString('es-PE') : 'No registrado'}
+                          <span className="flex items-center gap-1.5">
+                            <Calendar className="w-3.5 h-3.5 text-slate-400" /> Cierre: {job.fecha_fin ? new Date(job.fecha_fin).toLocaleDateString('es-PE') : 'No registrado'}
                           </span>
                           {job.vacantes && (
-                            <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md text-[10px] font-bold border border-gray-200">
+                            <span className="bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full text-[10px] font-bold">
                               {job.vacantes} vacante{job.vacantes !== 1 ? 's' : ''}
                             </span>
                           )}
                         </div>
 
-                        {/* Match Detail: Skill comparison */}
+                        {/* Clean Skill Comparison */}
                         {job.competencias && job.competencias.length > 0 && (
-                          <div className="space-y-1.5">
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                              Comparativa de Competencias
+                          <div className="space-y-2">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                              Competencias
                             </p>
-                            <div className="flex flex-wrap gap-1">
-                              {job.competencias.map(tag => {
+                            <div className="flex flex-wrap gap-1.5">
+                              {job.competencias.map((tag: string) => {
                                 const matchesStudent = profileForm.skills.some(
                                   skill => skill.toLowerCase() === tag.toLowerCase()
                                 );
                                 return (
                                   <span
                                     key={tag}
-                                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[9px] font-bold border ${
+                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold border ${
                                       matchesStudent
-                                        ? 'bg-green-50 border-green-200 text-green-800'
-                                        : 'bg-red-50 border-red-200 text-red-800'
+                                        ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                                        : 'bg-slate-50 border-slate-200 text-slate-500'
                                     }`}
                                   >
                                     {matchesStudent ? (
-                                      <Check className="w-2.5 h-2.5" />
+                                      <Check className="w-3 h-3" />
                                     ) : (
-                                      <X className="w-2.5 h-2.5" />
+                                      <X className="w-3 h-3" />
                                     )}
                                     {tag}
                                   </span>
                                 );
                               })}
                             </div>
-                            <div className="flex gap-3 text-[10px] text-gray-500">
-                              <span className="flex items-center gap-1">
-                                <Check className="w-3 h-3 text-green-600" />
-                                Coinciden: {job.competencias.filter(t => profileForm.skills.some(s => s.toLowerCase() === t.toLowerCase())).length}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <X className="w-3 h-3 text-red-600" />
-                                Faltan: {job.competencias.filter(t => !profileForm.skills.some(s => s.toLowerCase() === t.toLowerCase())).length}
-                              </span>
-                            </div>
                           </div>
                         )}
 
-                        <p className="text-xs text-gray-600 bg-gray-55 p-3 rounded-xl border border-gray-150 leading-relaxed line-clamp-2">
-                          <strong className="text-[10px] text-gray-700 block mb-0.5">Requisitos:</strong>
-                          {job.requisitos}
-                        </p>
+                        <div className="pt-4 border-t border-slate-100">
+                          <p className="text-[11px] font-bold text-slate-900 uppercase tracking-wider mb-1.5">Requisitos</p>
+                          <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">{job.requisitos}</p>
+                        </div>
 
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 border-t border-gray-100">
-                          <div className="bg-green-55 border border-green-200/60 rounded-xl px-4 py-1.5 flex items-center gap-1.5">
-                            <DollarSign className="w-4 h-4 text-green-700" />
-                            <div>
-                              <span className="text-[9px] text-green-600 font-bold block uppercase tracking-wider leading-none">Salario</span>
-                              <span className="text-sm font-extrabold text-green-800 leading-none">
-                                S/ {job.salario_min.toLocaleString('es-PE')} - S/ {job.salario_max.toLocaleString('es-PE')}
-                              </span>
-                            </div>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 mt-2 border-t border-slate-100">
+                          <div className="bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-right sm:text-left shrink-0">
+                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-0.5">Rango Salarial</span>
+                            <span className="text-sm font-bold text-slate-800">
+                              S/ {job.salario_min.toLocaleString('es-PE')} - S/ {job.salario_max.toLocaleString('es-PE')}
+                            </span>
                           </div>
 
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-3">
                             <button
                               onClick={() => {
                                 setSelectedJobForModal(job);
@@ -695,23 +839,69 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
                                   setViewedJobs(prev => [...prev, job.id]);
                                 }
                               }}
-                              className="text-xs font-extrabold text-red-800 hover:text-red-900 flex items-center gap-1 transition-colors bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg border border-red-100 shadow-3xs"
+                              className="text-xs font-semibold text-slate-600 hover:text-slate-900 px-4 py-2 transition-colors"
                             >
-                              Ver Detalles <ChevronRight className="w-3.5 h-3.5" />
+                              Ver Detalles
                             </button>
-                            <Button
-                              onClick={() => handleApplyClick(job)}
-                              className="bg-red-800 hover:bg-red-950 text-white rounded-xl px-5 py-2 font-bold text-xs shadow-sm flex items-center gap-1.5"
-                            >
-                              <Send className="w-3.5 h-3.5" />
-                              Postular
-                            </Button>
+                            {job.external_url ? (
+                              <a
+                                href={job.external_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-slate-800 hover:bg-slate-900 text-white rounded-lg px-5 py-2 font-bold text-xs shadow-sm transition-all flex items-center gap-2"
+                              >
+                                Ver en {job.company_name.split('via')[1] ? job.company_name.split('via')[1].trim() : 'Sitio Externo'} <Globe className="w-3.5 h-3.5" />
+                              </a>
+                            ) : (
+                              <Button
+                                onClick={() => handleApplyClick(job)}
+                                className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-5 py-2 font-bold text-xs shadow-sm transition-all"
+                              >
+                                Postular
+                              </Button>
+                            )}
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+
+                  {/* Paginación */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between bg-white px-4 py-3 border border-slate-200 rounded-xl mt-4">
+                      <div className="text-sm text-slate-500 font-medium">
+                        Mostrando <span className="font-bold text-slate-900">{(currentPage - 1) * itemsPerPage + 1}</span> a <span className="font-bold text-slate-900">{Math.min(currentPage * itemsPerPage, sortedFeedJobs.length)}</span> de <span className="font-bold text-slate-900">{sortedFeedJobs.length}</span> vacantes
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          disabled={currentPage === 1}
+                          onClick={() => {
+                            setCurrentPage(p => Math.max(1, p - 1));
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                        >
+                          Anterior
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          disabled={currentPage === totalPages}
+                          onClick={() => {
+                            setCurrentPage(p => Math.min(totalPages, p + 1));
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                        >
+                          Siguiente
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
               </div>
             )}
           </div>
@@ -739,39 +929,34 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
                 const job = app.job;
 
                 return (
-                  <Card key={app.id} className="border border-gray-200 bg-white hover:shadow-md transition-shadow">
-                    <CardContent className="p-5">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div className="space-y-2 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-extrabold text-gray-900 text-base">{job.title}</h3>
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold border ${statusInfo.color}`}>
-                              <StatusIcon className="w-3 h-3" /> {statusInfo.label}
+                  <Card key={app.id} className="group border border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm transition-all duration-200 rounded-2xl">
+                    <CardContent className="p-6">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-5">
+                        <div className="space-y-3 flex-1">
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <h3 className="font-bold text-slate-900 text-lg tracking-tight">{job.title}</h3>
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold border ${statusInfo.color.replace('red', 'amber')}`}>
+                              <StatusIcon className="w-3.5 h-3.5" /> {statusInfo.label}
                             </span>
                           </div>
-                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 font-medium">
-                            <span className="flex items-center gap-1">
-                              <Building className="w-3 h-3 text-gray-400" /> {job.company_name || job.company?.name}
+                          <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-slate-500">
+                            <span className="flex items-center gap-1.5">
+                              <Building className="w-3.5 h-3.5 text-slate-400" /> {job.company_name || job.company?.name}
                             </span>
-                            <span className="flex items-center gap-1">
-                              <MapPin className="w-3 h-3 text-gray-400" /> {job.lugar || 'Arequipa'}
+                            <span className="flex items-center gap-1.5">
+                              <MapPin className="w-3.5 h-3.5 text-slate-400" /> {job.lugar || 'Arequipa'}
                             </span>
-                            <span className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3 text-gray-400" /> {new Date(app.created_at).toLocaleDateString('es-PE')}
+                            <span className="flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5 text-slate-400" /> {new Date(app.created_at).toLocaleDateString('es-PE')}
                             </span>
-                            {(job as any).company?.contacto_email && (
-                              <span className="flex items-center gap-1 text-blue-700 font-semibold">
-                                Contacto: {(job as any).company.contacto_email}
-                              </span>
-                            )}
                           </div>
                           {job.competencias && job.competencias.length > 0 && (
-                            <div className="flex flex-wrap gap-1 pt-1">
+                            <div className="flex flex-wrap gap-1.5 pt-1">
                               {job.competencias.map(skill => {
                                 const hasSkill = profileForm.skills.some(s => s.toLowerCase() === skill.toLowerCase());
                                 return (
-                                  <span key={skill} className={`text-[8px] font-bold px-1.5 py-0.5 rounded border ${
-                                    hasSkill ? 'bg-green-50 border-green-200 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-400'
+                                  <span key={skill} className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border ${
+                                    hasSkill ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-500'
                                   }`}>
                                     {skill}
                                   </span>
@@ -781,47 +966,52 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
                           )}
                         </div>
 
-                        <div className="flex flex-col items-end gap-2">
-                          <span className="text-xs font-black text-green-700">
-                            S/ {job.salario_min.toLocaleString('es-PE')} - S/ {job.salario_max.toLocaleString('es-PE')}
-                          </span>
-                          {needsRating(app) && (
-                            hasRatedCompany(job.company_id) ? (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg border border-green-200 bg-green-50 text-green-800">
-                                <CheckCircle2 className="w-3 h-3" /> Calificado
-                              </span>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const found = jobs.find(j => j.id === job.id);
-                                  if (found) {
-                                    setSelectedJobForModal(found);
-                                    loadMatchDetail(found.id);
-                                  }
-                                }}
-                                className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 transition-colors"
-                              >
-                                <Star className="w-3 h-3" /> Calificar Empresa
-                              </button>
-                            )
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedJobForInterview(job);
-                              setInterviewStep(0);
-                              setChatMessages([{
-                                sender: 'ai',
-                                text: `¡Hola, ${profileForm.name.split(' ')[0] || 'Candidato'}! Soy la IA Reclutadora. He revisado tu perfil y noté tu interés en la vacante de **${job.title}** para **${job.company_name}**.\n\nSegún la vacante, buscan a alguien que cumpla con los siguientes requisitos: "${job.requisitos?.substring(0, 80)}...".\n\nPara comenzar, cuéntame: ¿Qué experiencia previa tienes que te ayude a cumplir con este perfil y cómo aportarías valor a la empresa?`
-                              }]);
-                              setChatInput('');
-                              setTimeout(() => setInterviewStep(1), 2500);
-                            }}
-                            className="inline-flex items-center gap-1.5 text-[10px] font-extrabold px-3 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800 transition-all shadow-3xs"
-                          >
-                            <Bot className="w-3.5 h-3.5" /> Simular Entrevista
-                          </button>
+                        <div className="flex flex-col items-end gap-3 shrink-0">
+                          <div className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-right w-full sm:w-auto">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Salario</span>
+                            <span className="text-sm font-bold text-slate-800">
+                              S/ {job.salario_min.toLocaleString('es-PE')} - S/ {job.salario_max.toLocaleString('es-PE')}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap sm:flex-nowrap gap-2 justify-end w-full sm:w-auto">
+                            {needsRating(app) && (
+                              hasRatedCompany(job.company_id) ? (
+                                <span className="inline-flex items-center justify-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 w-full sm:w-auto">
+                                  <CheckCircle2 className="w-3.5 h-3.5" /> Calificado
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const found = jobs.find(j => j.id === job.id);
+                                    if (found) {
+                                      setSelectedJobForModal(found);
+                                      loadMatchDetail(found.id);
+                                    }
+                                  }}
+                                  className="inline-flex items-center justify-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors shadow-sm w-full sm:w-auto"
+                                >
+                                  <Star className="w-3.5 h-3.5" /> Calificar Empresa
+                                </button>
+                              )
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedJobForInterview(job);
+                                setInterviewStep(0);
+                                setChatMessages([{
+                                  sender: 'ai',
+                                  text: `¡Hola, ${profileForm.name.split(' ')[0] || 'Candidato'}! Soy la IA Reclutadora. He revisado tu perfil y noté tu interés en la vacante de **${job.title}** para **${job.company_name}**.\n\nSegún la vacante, buscan a alguien que cumpla con los siguientes requisitos: "${job.requisitos?.substring(0, 80)}...".\n\nPara comenzar, cuéntame: ¿Qué experiencia previa tienes que te ayude a cumplir con este perfil y cómo aportarías valor a la empresa?`
+                                }]);
+                                setChatInput('');
+                                setTimeout(() => setInterviewStep(1), 2500);
+                              }}
+                              className="inline-flex items-center justify-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 transition-colors shadow-sm w-full sm:w-auto"
+                            >
+                              <Bot className="w-3.5 h-3.5" /> Simular Entrevista
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </CardContent>

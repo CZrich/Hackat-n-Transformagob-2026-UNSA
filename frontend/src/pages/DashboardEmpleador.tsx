@@ -1099,15 +1099,15 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
 
                     {/* Expanded Applicants Section */}
                     {isExpanded && (
-                      <div className="border-t border-gray-100 pt-4 animate-fadeIn space-y-3.5 bg-gray-50/20 -mx-5 px-5 pb-2">
-                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Lista de Postulantes por Competencias</h4>
+                      <div className="border-t border-slate-100 pt-5 animate-fadeIn space-y-4 bg-slate-50/50 -mx-5 px-5 pb-3">
+                        <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Lista de Postulantes por Competencias</h4>
                         
                         {!hasApplicants ? (
-                          <div className="text-center py-6 text-xs text-gray-400 font-medium">
+                          <div className="text-center py-8 text-xs text-slate-500 font-medium bg-white rounded-xl border border-slate-200 border-dashed">
                             Aún no se han recibido postulaciones para esta convocatoria.
                           </div>
                         ) : (
-                          <div className="space-y-3">
+                          <div className="space-y-4">
                             {job.applications?.map(app => {
                               const applicantUser = app.user;
                               if (!applicantUser) return null;
@@ -1129,49 +1129,49 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
                                 PROCESS_FINISHED: 'Proceso Finalizado',
                               };
                               const statusColors: Record<string, string> = {
-                                PENDING: 'bg-amber-50 text-amber-800 border-amber-200',
-                                REVIEWED: 'bg-blue-50 text-blue-800 border-blue-200',
-                                ACCEPTED: 'bg-green-50 text-green-800 border-green-200',
-                                REJECTED: 'bg-red-50 text-red-800 border-red-200',
-                                CV_REVIEWED: 'bg-purple-50 text-purple-800 border-purple-200',
-                                IN_PROCESS: 'bg-cyan-50 text-cyan-800 border-cyan-200',
-                                FINALIST: 'bg-indigo-50 text-indigo-800 border-indigo-200',
-                                PROCESS_FINISHED: 'bg-gray-100 text-gray-700 border-gray-300',
+                                PENDING: 'bg-slate-100 text-slate-700 border-slate-200',
+                                REVIEWED: 'bg-blue-50 text-blue-700 border-blue-200',
+                                ACCEPTED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                                REJECTED: 'bg-red-50 text-red-700 border-red-200',
+                                CV_REVIEWED: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+                                IN_PROCESS: 'bg-blue-50 text-blue-700 border-blue-200',
+                                FINALIST: 'bg-amber-50 text-amber-700 border-amber-200',
+                                PROCESS_FINISHED: 'bg-slate-100 text-slate-700 border-slate-200',
                               };
 
                               return (
                                 <div 
                                   key={app.id || app.userId}
-                                  className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-4 shadow-3xs"
+                                  className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col gap-5 shadow-sm hover:shadow-md transition-shadow"
                                 >
-                                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                    <div className="space-y-2 flex-grow">
-                                      <div className="flex flex-wrap items-center gap-2">
-                                      <strong className="text-sm text-gray-950 font-bold">{applicantUser.name}</strong>
-                                      <span className="text-[10px] bg-red-50 text-red-800 font-bold px-2 py-0.5 rounded-md border border-red-100">
-                                        {applicantProfile.carrera || 'N/D'}
-                                      </span>
-                                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${statusColors[app.status] || statusColors.PENDING}`}>
-                                        {statusLabels[app.status] || app.status}
-                                      </span>
-                                    </div>
+                                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-5">
+                                    <div className="space-y-3 flex-grow">
+                                      <div className="flex flex-wrap items-center gap-3">
+                                        <strong className="text-base text-slate-900 font-bold">{applicantUser.name}</strong>
+                                        <span className="text-[10px] bg-slate-100 text-slate-600 font-semibold px-2.5 py-1 rounded-md border border-slate-200 uppercase tracking-wider">
+                                          {applicantProfile.carrera || 'N/D'}
+                                        </span>
+                                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${statusColors[app.status] || statusColors.PENDING}`}>
+                                          {statusLabels[app.status] || app.status}
+                                        </span>
+                                      </div>
 
-                                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 font-medium">
-                                      <span>Teléfono: <strong className="text-gray-700 font-semibold">{applicantProfile.telefono || applicantUser.telefono}</strong></span>
-                                      <span>Correo: <strong className="text-gray-700 font-semibold">{applicantUser.email}</strong></span>
-                                    </div>
+                                      <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-500 font-medium">
+                                        <span>Teléfono: <strong className="text-slate-900">{applicantProfile.telefono || applicantUser.telefono || 'N/D'}</strong></span>
+                                        <span>Correo: <strong className="text-slate-900">{applicantUser.email}</strong></span>
+                                      </div>
 
-                                    {appSkills.length > 0 && (
-                                      <div className="flex flex-wrap gap-1">
-                                        {appSkills.map((skill: string) => {
+                                      {appSkills.length > 0 && (
+                                        <div className="flex flex-wrap gap-1.5 pt-1">
+                                          {appSkills.map((skill: string) => {
                                             const matches = job.competencias?.some(jc => jc.toLowerCase() === skill.toLowerCase());
                                             return (
                                               <span 
                                                 key={skill}
-                                                className={`text-[9px] font-bold px-2 py-0.5 rounded-md border ${
+                                                className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border ${
                                                   matches 
-                                                    ? 'bg-green-50 border-green-200 text-green-800'
-                                                    : 'bg-gray-100 border-gray-200 text-gray-500'
+                                                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                                                    : 'bg-slate-50 border-slate-200 text-slate-500'
                                                 }`}
                                               >
                                                 {skill}
@@ -1182,54 +1182,48 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
                                       )}
                                     </div>
 
-                                    <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-3 flex-shrink-0">
+                                    <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-4 flex-shrink-0">
                                       {/* Match Gauge */}
-                                      <div className="text-right">
-                                        <span className="text-[9px] text-gray-400 font-black uppercase tracking-wider block">Match Habilidades</span>
-                                        <span className={`text-base font-black ${
-                                          matchScore >= 80 ? 'text-green-700' : matchScore >= 50 ? 'text-amber-700' : 'text-gray-600'
-                                        }`}>{matchScore}% Match</span>
+                                      <div className="text-right bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block mb-0.5">Match</span>
+                                        <span className={`text-sm font-bold ${
+                                          matchScore >= 80 ? 'text-emerald-600' : matchScore >= 50 ? 'text-amber-600' : 'text-slate-600'
+                                        }`}>{matchScore}%</span>
                                       </div>
 
                                       {/* Simulated CV Download */}
-                                    {appCvName ? (
-                                      <a
-                                        href={appCvUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className={`inline-flex items-center gap-1.5 text-xs font-bold border px-3 py-1.5 rounded-lg transition-colors ${appCvUrl ? 'text-red-800 hover:text-red-950 border-red-250 bg-red-50/20' : 'text-gray-400 border-gray-200 bg-gray-50 pointer-events-none'}`}
-                                      >
-                                        <FileText className="w-3.5 h-3.5" />
-                                        <span>Ver CV</span>
-                                      </a>
-                                    ) : (
-                                      <span className="text-[10px] text-gray-400 italic">CV no subido</span>
-                                    )}
+                                      {appCvName ? (
+                                        <a
+                                          href={appCvUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className={`inline-flex items-center gap-1.5 text-xs font-semibold border px-4 py-2 rounded-lg transition-colors bg-white text-slate-700 hover:bg-slate-50 border-slate-200 shadow-sm`}
+                                        >
+                                          <FileText className="w-3.5 h-3.5 text-blue-600" />
+                                          <span>Ver CV</span>
+                                        </a>
+                                      ) : (
+                                        <span className="text-[10px] text-slate-400 italic px-2">Sin CV</span>
+                                      )}
                                     </div>
                                   </div>
 
                                   {/* Application Status Controls */}
-                                  <div className="border-t border-gray-100 pt-3">
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Actualizar Estado</p>
-                                    <div className="flex flex-wrap gap-1.5">
+                                  <div className="border-t border-slate-100 pt-4">
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2.5">Estado del Candidato</p>
+                                    <div className="flex flex-wrap gap-2">
                                       {(['PENDING', 'REVIEWED', 'CV_REVIEWED', 'IN_PROCESS', 'FINALIST', 'REJECTED', 'ACCEPTED', 'PROCESS_FINISHED'] as ApplicationStatus[]).map(status => {
                                         const isActive = app.status === status;
-                                        const colorMap: Record<string, string> = {
-                                          PENDING: isActive ? 'bg-amber-100 border-amber-300 text-amber-900' : 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100',
-                                          REVIEWED: isActive ? 'bg-blue-100 border-blue-300 text-blue-900' : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100',
-                                          CV_REVIEWED: isActive ? 'bg-purple-100 border-purple-300 text-purple-900' : 'bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100',
-                                          IN_PROCESS: isActive ? 'bg-cyan-100 border-cyan-300 text-cyan-900' : 'bg-cyan-50 border-cyan-200 text-cyan-700 hover:bg-cyan-100',
-                                          FINALIST: isActive ? 'bg-indigo-100 border-indigo-300 text-indigo-900' : 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100',
-                                          REJECTED: isActive ? 'bg-red-100 border-red-300 text-red-900' : 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100',
-                                          ACCEPTED: isActive ? 'bg-green-100 border-green-300 text-green-900' : 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100',
-                                          PROCESS_FINISHED: isActive ? 'bg-gray-200 border-gray-400 text-gray-900' : 'bg-gray-100 border-gray-200 text-gray-600 hover:bg-gray-200',
-                                        };
                                         return (
                                           <button
                                             key={status}
                                             type="button"
                                             onClick={() => updateApplicationStatus({ applicationId: app.id, status })}
-                                            className={`text-[9px] font-bold px-2 py-1 rounded-lg border transition-all ${colorMap[status] || ''} ${isActive ? 'ring-2 ring-offset-1' : ''}`}
+                                            className={`text-[10px] font-semibold px-3 py-1.5 rounded-lg border transition-all ${
+                                              isActive 
+                                                ? 'bg-slate-900 border-slate-900 text-white shadow-sm' 
+                                                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
+                                            }`}
                                           >
                                             {statusLabels[status] || status}
                                           </button>

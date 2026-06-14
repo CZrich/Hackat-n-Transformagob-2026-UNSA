@@ -216,8 +216,8 @@ export class AuthService {
         await this.prisma.graduateProfile.create({
           data: {
             userId: newUser.id,
-            carrera: 'Ingeniería de Sistemas',
-            telefono: '+51900000000',
+            carrera: '',
+            telefono: '',
             skills: [],
           },
         });

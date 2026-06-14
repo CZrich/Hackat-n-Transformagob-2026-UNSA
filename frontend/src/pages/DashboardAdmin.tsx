@@ -132,19 +132,19 @@ export default function DashboardAdmin() {
         </div>
       </div>
 
-      <div className="flex gap-4 border-b border-gray-200">
+      <div className="flex gap-6 border-b border-slate-200">
         <button
           onClick={() => setActiveTab('empresas')}
-          className={`pb-2 px-2 text-sm font-bold border-b-2 transition-colors ${
-            activeTab === 'empresas' ? 'border-amber-600 text-amber-700' : 'border-transparent text-gray-500 hover:text-gray-700'
+          className={`pb-3 px-1 text-sm font-bold border-b-2 transition-colors ${
+            activeTab === 'empresas' ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
           Gestión de Empresas
         </button>
         <button
           onClick={() => setActiveTab('eventos')}
-          className={`pb-2 px-2 text-sm font-bold border-b-2 transition-colors ${
-            activeTab === 'eventos' ? 'border-amber-600 text-amber-700' : 'border-transparent text-gray-500 hover:text-gray-700'
+          className={`pb-3 px-1 text-sm font-bold border-b-2 transition-colors ${
+            activeTab === 'eventos' ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
           Gestión de Eventos
@@ -167,61 +167,59 @@ export default function DashboardAdmin() {
           )}
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Metric 1: Verified */}
-        <Card className="border border-green-100 bg-green-50/20 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/10 rounded-full filter blur-xl"></div>
-          <CardContent className="p-5 flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-green-100 text-green-700">
+        <Card className="rounded-xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-all duration-200">
+          <CardContent className="p-6 flex items-start gap-4">
+            <div className="p-3 rounded-xl bg-emerald-50 text-emerald-600">
               <ShieldCheck className="w-6 h-6" />
             </div>
-            <div>
-              <p className="text-3xl font-black text-green-800">{verifiedCount}</p>
-              <p className="text-xs font-bold text-gray-600">Empresas Verificadas</p>
-              <p className="text-[10px] text-gray-400 mt-0.5">Ofertas se auto-publican</p>
+            <div className="flex-1 space-y-1">
+              <p className="text-2xl font-bold text-slate-900 leading-none">{verifiedCount}</p>
+              <p className="text-sm font-semibold text-slate-600">Empresas Verificadas</p>
+              <p className="text-xs text-slate-500">Ofertas se auto-publican</p>
             </div>
           </CardContent>
         </Card>
 
         {/* Metric 2: Unverified */}
-        <Card className="border border-amber-100 bg-amber-50/20 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full filter blur-xl"></div>
-          <CardContent className="p-5 flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-amber-100 text-amber-700">
+        <Card className="rounded-xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-all duration-200">
+          <CardContent className="p-6 flex items-start gap-4">
+            <div className="p-3 rounded-xl bg-amber-50 text-amber-600">
               <Building2 className="w-6 h-6" />
             </div>
-            <div>
-              <p className="text-3xl font-black text-amber-800">{pendingVerification}</p>
-              <p className="text-xs font-bold text-gray-600">Por Verificar</p>
-              <p className="text-[10px] text-gray-400 mt-0.5">Requieren revisión de RUC</p>
+            <div className="flex-1 space-y-1">
+              <p className="text-2xl font-bold text-slate-900 leading-none">{pendingVerification}</p>
+              <p className="text-sm font-semibold text-slate-600">Por Verificar</p>
+              <p className="text-xs text-slate-500">Requieren revisión de RUC</p>
             </div>
           </CardContent>
         </Card>
 
         {/* Metric 3: Low Ratings */}
-        <Card className={`border shadow-sm ${lowRatingCount > 0 ? 'border-red-200 bg-red-50/20 animate-pulse' : 'border-gray-150 bg-white'}`}>
-          <CardContent className="p-5 flex items-center gap-4">
-            <div className={`p-3 rounded-xl ${lowRatingCount > 0 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-400'}`}>
+        <Card className="rounded-xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-all duration-200">
+          <CardContent className="p-6 flex items-start gap-4">
+            <div className={`p-3 rounded-xl ${lowRatingCount > 0 ? 'bg-red-50 text-red-600' : 'bg-slate-50 text-slate-400'}`}>
               <ThumbsDown className="w-6 h-6" />
             </div>
-            <div>
-              <p className="text-3xl font-black text-red-900">{lowRatingCount}</p>
-              <p className="text-xs font-bold text-gray-600">Mal Calificadas (&lt; 3★)</p>
-              <p className="text-[10px] text-gray-400 mt-0.5">Monitoreo y posibles bans</p>
+            <div className="flex-1 space-y-1">
+              <p className={`text-2xl font-bold leading-none ${lowRatingCount > 0 ? 'text-red-600' : 'text-slate-900'}`}>{lowRatingCount}</p>
+              <p className="text-sm font-semibold text-slate-600">Mal Calificadas (&lt; 3★)</p>
+              <p className="text-xs text-slate-500">Monitoreo y posibles bans</p>
             </div>
           </CardContent>
         </Card>
 
         {/* Metric 4: Banned */}
-        <Card className="border border-gray-150 bg-white shadow-sm">
-          <CardContent className="p-5 flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-slate-100 text-slate-700">
+        <Card className="rounded-xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-all duration-200">
+          <CardContent className="p-6 flex items-start gap-4">
+            <div className="p-3 rounded-xl bg-slate-100 text-slate-600">
               <Ban className="w-6 h-6" />
             </div>
-            <div>
-              <p className="text-3xl font-black text-slate-900">{bannedCount}</p>
-              <p className="text-xs font-bold text-gray-600">Empresas Baneadas</p>
-              <p className="text-[10px] text-gray-400 mt-0.5">Cuentas inactivas / suspendidas</p>
+            <div className="flex-1 space-y-1">
+              <p className="text-2xl font-bold text-slate-900 leading-none">{bannedCount}</p>
+              <p className="text-sm font-semibold text-slate-600">Empresas Baneadas</p>
+              <p className="text-xs text-slate-500">Cuentas inactivas / suspendidas</p>
             </div>
           </CardContent>
         </Card>
@@ -265,15 +263,15 @@ export default function DashboardAdmin() {
       )}
 
       {/* Main Companies Moderation Queue */}
-      <Card className="border border-gray-150 shadow-md">
+      <Card className="border border-slate-200 shadow-sm">
         {/* Toolbar & Filters */}
-        <CardHeader className="bg-gray-50/50 border-b border-gray-100 px-6 py-4 space-y-4">
+        <CardHeader className="bg-white border-b border-slate-100 px-6 py-5 space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-red-800" />
-              <h2 className="text-lg font-bold text-gray-900">Directorio de Empresas Empleadoras</h2>
+            <div className="flex items-center gap-2.5">
+              <Building2 className="w-5 h-5 text-slate-400" />
+              <h2 className="text-lg font-bold text-slate-900">Directorio de Empresas Empleadoras</h2>
             </div>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-200">
+            <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
               {filteredCompanies.length} de {totalCompanies} Empresas
             </span>
           </div>
@@ -281,18 +279,18 @@ export default function DashboardAdmin() {
           <div className="flex flex-col md:flex-row gap-3">
             {/* Search Input */}
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" />
               <input
                 type="text"
                 placeholder="Buscar por Razón Social, RUC o Correo..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="pl-9 block w-full rounded-xl border border-gray-300 px-3.5 py-2 text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 h-9 bg-white"
+                className="pl-10 block w-full rounded-xl border border-slate-200 px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-10 bg-white transition-all"
               />
             </div>
 
             {/* Filter Tabs */}
-            <div className="flex flex-wrap gap-1 bg-gray-100/80 p-1 rounded-xl">
+            <div className="flex flex-wrap gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200">
               {(['ALL', 'VERIFIED', 'UNVERIFIED', 'BANNED', 'LOW_RATING'] as const).map((type) => {
                 const labels: Record<string, string> = {
                   ALL: 'Todas',
@@ -306,10 +304,10 @@ export default function DashboardAdmin() {
                     key={type}
                     type="button"
                     onClick={() => setFilterType(type)}
-                    className={`px-3 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                       filterType === type
-                        ? 'bg-white text-red-950 shadow-3xs'
-                        : 'text-gray-500 hover:text-gray-800'
+                        ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50'
+                        : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100/50'
                     }`}
                   >
                     {labels[type]}
@@ -335,7 +333,7 @@ export default function DashboardAdmin() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 animate-fadeIn">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-fadeIn">
               {filteredCompanies.map((company) => {
                 const verified = company.es_verificada || false;
                 const banned = company.es_baneada || false;
@@ -344,103 +342,102 @@ export default function DashboardAdmin() {
                 return (
                   <Card 
                     key={company.id} 
-                    className={`border transition-all overflow-hidden relative shadow-xs hover:shadow-md ${
+                    className={`border transition-all overflow-hidden relative shadow-sm hover:shadow-md ${
                       banned 
-                        ? 'border-gray-200 bg-gray-50/50 opacity-70' 
+                        ? 'border-slate-200 bg-slate-50/50 opacity-75' 
                         : verified 
-                        ? 'border-green-150 bg-green-50/5' 
-                        : 'border-amber-150 bg-amber-50/5'
+                        ? 'border-slate-200 bg-white' 
+                        : 'border-amber-200 bg-amber-50/30'
                     }`}
                   >
                     {/* Status Ribbon top right */}
                     <div className="absolute top-4 right-4">
                       {banned ? (
-                        <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-gray-200 text-gray-700 border border-gray-300">
+                        <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
                           Baneada
                         </span>
                       ) : verified ? (
-                        <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-green-100 text-green-700 border border-green-200">
+                        <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                           ✓ Verificada
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-amber-100 text-amber-700 border border-amber-200 animate-pulse">
+                        <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200">
                           Sin Verificar
                         </span>
                       )}
                     </div>
 
-                    <CardContent className="p-5 flex flex-col justify-between h-full space-y-4">
-                      <div className="space-y-2.5">
-                        <div className="flex items-center gap-2">
-                          <div className={`p-2 rounded-lg ${
-                            banned ? 'bg-gray-200 text-gray-600' : verified ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                    <CardContent className="p-5 flex flex-col justify-between h-full space-y-5">
+                      <div className="space-y-4">
+                        <div className="flex items-start gap-3 pr-20">
+                          <div className={`p-2.5 rounded-xl border ${
+                            banned ? 'bg-slate-100 border-slate-200 text-slate-500' : verified ? 'bg-white border-slate-200 text-slate-700 shadow-sm' : 'bg-white border-amber-200 text-amber-600 shadow-sm'
                           }`}>
                             <Building2 className="w-5 h-5" />
                           </div>
                           <div>
-                            <h3 className="font-extrabold text-gray-900 text-sm">{company.name}</h3>
-                            <p className="text-[10px] text-gray-500 font-semibold uppercase">{company.rubro || 'Rubro no especificado'}</p>
+                            <h3 className="font-bold text-slate-900 text-sm leading-tight">{company.name}</h3>
+                            <p className="text-[10px] text-slate-500 font-medium uppercase mt-1 tracking-wider">{company.rubro || 'Rubro no especificado'}</p>
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs border-t border-gray-100 pt-2.5">
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs border-t border-slate-100 pt-4">
                           <div>
-                            <span className="text-gray-400 text-[10px] block">RUC Comercial</span>
-                            <strong className="text-gray-700 font-semibold">{company.ruc || 'No registrado'}</strong>
+                            <span className="text-slate-400 text-[10px] font-semibold uppercase tracking-wider block mb-0.5">RUC</span>
+                            <strong className="text-slate-700">{company.ruc || 'No registrado'}</strong>
                           </div>
                           <div>
-                            <span className="text-gray-400 text-[10px] block">Contacto</span>
-                            <strong className="text-gray-700 font-semibold">{company.contact_name || 'No registrado'}</strong>
+                            <span className="text-slate-400 text-[10px] font-semibold uppercase tracking-wider block mb-0.5">Contacto</span>
+                            <strong className="text-slate-700 truncate block">{company.contact_name || 'No registrado'}</strong>
                           </div>
-                          <div className="mt-1.5 col-span-2">
-                            <span className="text-gray-400 text-[10px] block">Correo Registrado</span>
-                            <strong className="text-gray-700 font-medium">{company.email}</strong>
+                          <div className="col-span-2">
+                            <span className="text-slate-400 text-[10px] font-semibold uppercase tracking-wider block mb-0.5">Correo Corporativo</span>
+                            <strong className="text-slate-700">{company.email}</strong>
                           </div>
-                          <div className="mt-1.5">
-                            <span className="text-gray-400 text-[10px] block">Celular</span>
-                            <strong className="text-gray-700 font-semibold">{company.telefono || 'No registrado'}</strong>
+                          <div>
+                            <span className="text-slate-400 text-[10px] font-semibold uppercase tracking-wider block mb-0.5">Celular</span>
+                            <strong className="text-slate-700">{company.telefono || 'No registrado'}</strong>
                           </div>
-                          <div className="mt-1.5">
-                            <span className="text-gray-400 text-[10px] block">Calificación Egresados</span>
-                            <div className="flex items-center gap-1 text-amber-600">
-                              <Star className={`w-3.5 h-3.5 ${avgRating < 3 ? 'text-red-600 fill-current' : 'text-amber-500 fill-current'}`} />
-                              <strong className={`font-bold ${avgRating < 3 ? 'text-red-700' : 'text-gray-700'}`}>{avgRating} / 5.0</strong>
-                              <span className="text-[9px] text-gray-400 font-medium">({company.total_votos || 0})</span>
+                          <div>
+                            <span className="text-slate-400 text-[10px] font-semibold uppercase tracking-wider block mb-0.5">Reputación</span>
+                            <div className="flex items-center gap-1.5">
+                              <Star className={`w-3.5 h-3.5 ${avgRating < 3 ? 'text-red-500 fill-current' : 'text-amber-500 fill-current'}`} />
+                              <strong className={`font-bold ${avgRating < 3 ? 'text-red-700' : 'text-slate-700'}`}>{avgRating} / 5.0</strong>
                             </div>
                           </div>
                         </div>
                       </div>
 
                       {/* Moderation Actions */}
-                      <div className="flex gap-2 pt-2 border-t border-gray-100">
+                      <div className="flex gap-3 pt-4 border-t border-slate-100">
                         {/* Verify Button */}
                         <button
                           type="button"
                           disabled={banned}
                           onClick={() => handleVerifyToggle(company.id, verified)}
-                          className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-bold border transition-colors ${
+                          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
                             banned 
-                              ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                              ? 'bg-slate-50 text-slate-400 border border-slate-200 cursor-not-allowed'
                               : verified
-                              ? 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
-                              : 'bg-green-700 text-white border-transparent hover:bg-green-800'
+                              ? 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-sm'
+                              : 'bg-slate-900 text-white hover:bg-slate-800 shadow-sm'
                           }`}
                         >
-                          {verified ? 'Desverificar' : 'Verificar RUC'}
+                          {verified ? 'Revocar Verificación' : 'Verificar RUC'}
                         </button>
 
                         {/* Ban Button */}
                         <button
                           type="button"
                           onClick={() => handleBanToggle(company.id, banned)}
-                          className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-bold border transition-colors ${
+                          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
                             banned
-                              ? 'bg-white text-green-700 border-green-200 hover:bg-green-50'
-                              : 'bg-white text-red-700 border-red-200 hover:bg-red-50'
+                              ? 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50 shadow-sm'
+                              : 'bg-white text-red-600 border-slate-200 hover:border-red-200 hover:bg-red-50 shadow-sm'
                           }`}
                         >
                           <Ban className="w-3.5 h-3.5" />
-                          {banned ? 'Desbanear' : 'Banear'}
+                          {banned ? 'Desbanear' : 'Banear Empresa'}
                         </button>
                       </div>
                     </CardContent>

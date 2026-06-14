@@ -69,16 +69,16 @@ export default function DashboardAdminEvents() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold text-gray-900">Gestión de Eventos y Novedades</h2>
-        <Button onClick={() => setShowForm(true)} className="bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs px-4">
-          <Plus className="w-4 h-4 mr-2 inline" /> Nuevo Evento
+        <h2 className="text-xl font-bold text-slate-900">Gestión de Eventos y Novedades</h2>
+        <Button onClick={() => setShowForm(true)} className="bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs px-4 shadow-sm transition-all">
+          <Plus className="w-4 h-4 mr-1.5 inline" /> Nuevo Evento
         </Button>
       </div>
 
       {showForm && (
-        <Card className="border border-amber-200">
-          <CardHeader className="bg-amber-50 py-3 border-b border-amber-100">
-            <h3 className="font-bold text-amber-900">Crear Evento</h3>
+        <Card className="border border-slate-200 shadow-sm">
+          <CardHeader className="bg-slate-50/50 py-4 px-5 border-b border-slate-100">
+            <h3 className="font-bold text-slate-900 text-sm">Crear Evento</h3>
           </CardHeader>
           <CardContent className="p-5">
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -110,9 +110,9 @@ export default function DashboardAdminEvents() {
                 <Input label="Ubicación (opcional)" value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} className="rounded-xl" />
                 <Input label="Enlace (opcional)" type="url" value={formData.link} onChange={e => setFormData({ ...formData, link: e.target.value })} className="rounded-xl" />
               </div>
-              <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
-                <Button type="button" variant="secondary" onClick={() => setShowForm(false)} className="rounded-xl text-xs px-4">Cancelar</Button>
-                <Button type="submit" className="rounded-xl text-xs px-4 bg-amber-600 hover:bg-amber-700">Publicar Evento</Button>
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-2">
+                <Button type="button" variant="secondary" onClick={() => setShowForm(false)} className="rounded-xl text-xs px-5 border-slate-200">Cancelar</Button>
+                <Button type="submit" className="rounded-xl text-xs px-5 bg-slate-900 hover:bg-slate-800 text-white shadow-sm transition-all">Publicar Evento</Button>
               </div>
             </form>
           </CardContent>
@@ -120,25 +120,27 @@ export default function DashboardAdminEvents() {
       )}
 
       {loading ? (
-        <p className="text-sm text-gray-500">Cargando eventos...</p>
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin h-6 w-6 border-4 border-slate-800 border-t-transparent rounded-full" />
+        </div>
       ) : events.length === 0 ? (
-        <div className="p-10 bg-gray-50 text-center rounded-xl border border-gray-200">
-          <CalendarIcon className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 font-medium">No hay eventos publicados</p>
+        <div className="py-12 bg-white text-center rounded-2xl border border-slate-200 border-dashed">
+          <CalendarIcon className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+          <p className="text-slate-500 font-medium text-sm">No hay eventos publicados</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {events.map((ev) => (
-            <Card key={ev.id} className="border border-gray-200">
+            <Card key={ev.id} className="border border-slate-200 shadow-sm hover:shadow-md transition-all bg-white rounded-2xl overflow-hidden">
               <CardContent className="p-5 flex flex-col h-full">
-                <div className="flex justify-between items-start mb-2">
-                  <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">{ev.type}</span>
-                  <button onClick={() => handleDelete(ev.id)} className="text-gray-400 hover:text-red-600">
+                <div className="flex justify-between items-start mb-3">
+                  <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 uppercase tracking-wider">{ev.type}</span>
+                  <button onClick={() => handleDelete(ev.id)} className="text-slate-400 hover:text-red-600 transition-colors p-1 hover:bg-red-50 rounded-md">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
-                <h4 className="font-bold text-gray-900 mb-1 leading-tight">{ev.title}</h4>
-                <p className="text-xs text-gray-600 mb-4 line-clamp-2 flex-grow">{ev.description}</p>
+                <h4 className="font-bold text-slate-900 mb-2 leading-tight text-sm">{ev.title}</h4>
+                <p className="text-xs text-slate-500 mb-5 line-clamp-3 flex-grow leading-relaxed">{ev.description}</p>
                 
                 <div className="space-y-2 mt-auto text-xs text-gray-500">
                   <div className="flex items-center gap-1.5">
