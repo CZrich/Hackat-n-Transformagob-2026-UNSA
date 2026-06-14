@@ -107,15 +107,6 @@ export default function DemoSimulationDrawer({ onLogin, currentRole }: DemoSimul
 
   return (
     <>
-      {/* Floating Action Button */}
-      <button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 bg-gradient-to-r from-red-800 to-amber-800 text-white px-4 py-2.5 rounded-full shadow-2xl hover:scale-105 hover:from-red-900 hover:to-amber-900 transition-all font-semibold text-xs border border-white/20"
-      >
-        <Sliders className="w-4 h-4" />
-        <span>Panel de Simulación</span>
-      </button>
-
       {/* Drawer Overlay */}
       {isOpen && (
         <div 
