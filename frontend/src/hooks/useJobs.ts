@@ -1,137 +1,60 @@
-import { useState, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../services/api';
-import type { Job } from '../types';
-import {
-  getMatchedJobsLocal,
-  getPendingJobsLocal,
-  getMyJobsLocal,
-  createJobLocal,
-  updateJobStatusLocal
-} from '../services/mockDb';
+// types not needed anymore as useQuery handles it via api
+
+import { useAuth } from './useAuth';
 
 export function useJobs() {
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const role = user?.role;
 
-  const fetchMatched = useCallback(async (careerOverride?: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await api.jobs.getMatched();
-      // Even if API works, if we pass a careerOverride (for switching identities), we can filter or use it
-      if (careerOverride) {
-        setJobs(data.filter(j => j.carrera_destino.toLowerCase() === careerOverride.toLowerCase()));
-      } else {
-        setJobs(data);
-      }
-    } catch (err) {
-      console.warn('API Error, cayendo a base de datos simulada local:', err);
-      const userRaw = localStorage.getItem('user');
-      if (userRaw) {
-        try {
-          const user = JSON.parse(userRaw);
-          const targetCareer = careerOverride || user.carrera || 'Ingeniería de Sistemas';
-          const userSkills = user.skills || [];
-          const data = getMatchedJobsLocal(targetCareer, userSkills);
-          setJobs(data);
-        } catch {
-          setJobs([]);
-        }
-      } else {
-        setJobs([]);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const matchedQuery = useQuery({
+    queryKey: ['jobs', 'matched'],
+    queryFn: () => api.jobs.getMatched(),
+    enabled: role === 'EGRESADO',
+  });
 
-  const fetchPending = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await api.jobs.getPending();
-      setJobs(data);
-    } catch (err) {
-      console.warn('API Error, cayendo a base de datos simulada local:', err);
-      const data = getPendingJobsLocal();
-      setJobs(data);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const pendingQuery = useQuery({
+    queryKey: ['jobs', 'pending'],
+    queryFn: () => api.jobs.getPending(),
+    enabled: role === 'ADMIN',
+  });
 
-  const fetchMyHistory = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await api.jobs.getMyHistory();
-      setJobs(data);
-    } catch (err) {
-      console.warn('API Error, cayendo a base de datos simulada local:', err);
-      const userRaw = localStorage.getItem('user');
-      if (userRaw) {
-        try {
-          const user = JSON.parse(userRaw);
-          const data = getMyJobsLocal(user.id || 'company_tech_solutions');
-          setJobs(data);
-        } catch {
-          setJobs([]);
-        }
-      } else {
-        setJobs([]);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const historyQuery = useQuery({
+    queryKey: ['jobs', 'history'],
+    queryFn: () => api.jobs.getMyHistory(),
+    enabled: role === 'EMPLEADOR',
+  });
 
-  const updateStatus = useCallback(async (id: string, status: string) => {
-    setError(null);
-    try {
-      const updated = await api.jobs.updateStatus(id, status);
-      setJobs((prev) => prev.map((j) => (j.id === id ? updated : j)));
-      return updated;
-    } catch (err) {
-      console.warn('API Error, actualizando oferta en base local:', err);
-      const updated = updateJobStatusLocal(id, status as any);
-      setJobs((prev) => prev.map((j) => (j.id === id ? updated : j)));
-      return updated;
-    }
-  }, []);
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) => api.jobs.updateStatus(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+    },
+  });
 
-  const createJob = useCallback(async (data: Record<string, unknown>) => {
-    setError(null);
-    try {
-      const created = await api.jobs.create(data);
-      setJobs((prev) => [created, ...prev]);
-      return created;
-    } catch (err) {
-      console.warn('API Error, creando oferta en base local:', err);
-      const userRaw = localStorage.getItem('user');
-      if (userRaw) {
-        try {
-          const currentUser = JSON.parse(userRaw);
-          const created = createJobLocal(data as any, currentUser);
-          setJobs((prev) => [created, ...prev]);
-          return created;
-        } catch {
-          throw err;
-        }
-      }
-      throw err;
-    }
-  }, []);
+  const createJobMutation = useMutation({
+    mutationFn: (data: Record<string, unknown>) => api.jobs.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+    },
+  });
+
+  const applyJobMutation = useMutation({
+    mutationFn: (jobId: string) => api.jobs.apply(jobId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+    },
+  });
 
   return {
-    jobs,
-    loading,
-    error,
-    fetchMatched,
-    fetchPending,
-    fetchMyHistory,
-    updateStatus,
-    createJob,
+    matchedQuery,
+    pendingQuery,
+    historyQuery,
+    updateStatus: updateStatusMutation.mutateAsync,
+    createJob: createJobMutation.mutateAsync,
+    applyJob: applyJobMutation.mutateAsync,
   };
 }
 

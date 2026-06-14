@@ -64,6 +64,26 @@ export const api = {
         method: 'POST',
         body: data,
       }),
+
+    updateProfile: (data: Partial<User>) =>
+      request<User>('/api/users/profile', {
+        method: 'PUT',
+        body: data,
+      }),
+
+    uploadCv: async (file: File) => {
+      const token = getToken();
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch(`${API_URL}/api/users/profile/cv`, {
+        method: 'POST',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        body: formData,
+      });
+      if (!response.ok) throw new Error('Error al subir el CV');
+      return response.json();
+    },
   },
 
   jobs: {
@@ -80,6 +100,22 @@ export const api = {
       request<Job>(`/api/jobs/${id}/status`, {
         method: 'PATCH',
         body: { status },
+      }),
+
+    apply: (id: string) =>
+      request<any>(`/api/jobs/${id}/apply`, {
+        method: 'POST',
+      }),
+  },
+
+  admin: {
+    listCompanies: () => request<User[]>('/api/admin/companies'),
+    verifyCompany: (id: string) =>
+      request<any>(`/api/admin/companies/${id}/verify`, { method: 'PATCH' }),
+    banCompany: (id: string, es_baneada: boolean) =>
+      request<any>(`/api/admin/companies/${id}/ban`, {
+        method: 'PATCH',
+        body: { es_baneada },
       }),
   },
 };

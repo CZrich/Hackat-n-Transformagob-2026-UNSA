@@ -21,6 +21,13 @@ enum JobStatus {
   SPAM
 }
 
+enum ApplicationStatus {
+  PENDING
+  REVIEWED
+  ACCEPTED
+  REJECTED
+}
+
 model User {
   id         String   @id @default(uuid())
   email      String   @unique
@@ -30,9 +37,13 @@ model User {
   telefono   String?
   skills     String[]
   password   String?
-  created_at DateTime @default(now())
-  company    Company?
-  jobs       Job[]    @relation("JobCreatedBy")
+  cv_name    String?
+  cv_url     String?
+  bio        String?
+  created_at   DateTime      @default(now())
+  company      Company?
+  jobs         Job[]         @relation("JobCreatedBy")
+  applications Application[]
 }
 
 model Company {
@@ -71,5 +82,19 @@ model Job {
   creado_en       DateTime  @default(now())
   company         Company   @relation(fields: [company_id], references: [id])
   created_by_id   String?
-  created_by      User?     @relation("JobCreatedBy", fields: [created_by_id], references: [id])
+  created_by      User?         @relation("JobCreatedBy", fields: [created_by_id], references: [id])
+  applications    Application[]
+}
+
+model Application {
+  id         String            @id @default(uuid())
+  jobId      String
+  userId     String
+  status     ApplicationStatus @default(PENDING)
+  created_at DateTime          @default(now())
+
+  job  Job  @relation(fields: [jobId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([jobId, userId])
 }

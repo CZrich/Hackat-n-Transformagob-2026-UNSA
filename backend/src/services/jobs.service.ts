@@ -46,11 +46,8 @@ export class JobsService {
       });
     }
 
-    if (!company.es_verificada) {
-      throw new BadRequestException(
-        'Tu empresa no está verificada por ODEEG. No puedes publicar ofertas hasta que un administrador verifique tu RUC.',
-      );
-    }
+    const isVerified = company.es_verificada || false;
+    const status: JobStatus = isVerified ? 'APPROVED' : 'PENDING';
 
     const now = new Date();
     const fechaInicio = dto.fecha_inicio ? new Date(dto.fecha_inicio) : now;
@@ -74,20 +71,46 @@ export class JobsService {
         fecha_fin: fechaFin,
         perfil: dto.requisitos,
         competencias: dto.competencias || [],
-        status: 'APPROVED',
+        status: status,
         created_by_id: userId,
       },
     });
 
-    await this.notificationService.notifyCandidates(job);
+    if (status === 'APPROVED') {
+      await this.notificationService.notifyCandidates(job);
+    }
     return job;
   }
 
-  async findByCareer(carrera: string) {
-    return this.prisma.job.findMany({
+  async findMatched(userId: string, carrera: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { skills: true }
+    });
+
+    const userSkills = (user?.skills || []).map(s => s.toLowerCase());
+
+    const jobs = await this.prisma.job.findMany({
       where: { carrera_destino: carrera, status: 'APPROVED' },
       orderBy: { creado_en: 'desc' },
+      include: {
+        applications: {
+          where: { userId }
+        }
+      }
     });
+
+    // Calculate match score based on overlapping skills
+    return jobs.map(job => {
+      const jobCompetencias = (job.competencias || []).map(s => s.toLowerCase());
+      let matchCount = 0;
+      for (const skill of userSkills) {
+        if (jobCompetencias.includes(skill)) {
+          matchCount++;
+        }
+      }
+      return { ...job, matchScore: matchCount };
+    }).sort((a, b) => b.matchScore - a.matchScore);
   }
 
   async findPending() {
@@ -104,12 +127,22 @@ export class JobsService {
         where: { company_id: company.id },
         orderBy: { creado_en: 'desc' },
         take: 50,
+        include: {
+          applications: {
+            include: { user: true }
+          }
+        }
       });
     }
     return this.prisma.job.findMany({
       where: { created_by_id: userId },
       orderBy: { creado_en: 'desc' },
       take: 50,
+      include: {
+        applications: {
+          include: { user: true }
+        }
+      }
     });
   }
 
@@ -131,5 +164,24 @@ export class JobsService {
     }
 
     return updated;
+  }
+
+  async applyJob(jobId: string, userId: string) {
+    const existing = await this.prisma.application.findUnique({
+      where: {
+        jobId_userId: { jobId, userId }
+      }
+    });
+    if (existing) {
+      throw new BadRequestException('Ya has postulado a esta oferta');
+    }
+
+    return this.prisma.application.create({
+      data: {
+        jobId,
+        userId,
+        status: 'PENDING',
+      }
+    });
   }
 }

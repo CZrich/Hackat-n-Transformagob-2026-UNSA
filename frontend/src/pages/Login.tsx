@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
-import { GraduationCap, Building2, Shield, Mail, Lock, Phone, User as UserIcon, AlertCircle } from 'lucide-react';
-import { CARRERAS } from '../config';
+import { GraduationCap, Building2, Shield, Mail, Lock, Phone, User as UserIcon, AlertCircle, X } from 'lucide-react';
+import { CARRERAS, GOOGLE_CLIENT_ID } from '../config';
 import { api } from '../services/api';
 import Button from '../components/ui/Button';
 import Card, { CardContent } from '../components/ui/Card';
@@ -47,6 +47,12 @@ export default function Login({ onLogin }: LoginProps) {
     password: ''
   });
 
+  // Google Popup Simulator states
+  const [showGooglePopup, setShowGooglePopup] = useState(false);
+  const [googleEmail, setGoogleEmail] = useState('');
+  const [googleCarrera, setGoogleCarrera] = useState<typeof CARRERAS[number] | ''>('');
+  const [googlePopupError, setGooglePopupError] = useState('');
+
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   const handleGoogleSuccess = useCallback(async (tokenResponse: any) => {
@@ -74,6 +80,102 @@ export default function Login({ onLogin }: LoginProps) {
     onError: () => setError('Error al iniciar sesión con Google'),
     scope: 'openid email profile',
   });
+
+  const handleGoogleClick = () => {
+    if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.includes('dummy') || GOOGLE_CLIENT_ID === '') {
+      setShowGooglePopup(true);
+      setGooglePopupError('');
+      setGoogleEmail('');
+      setGoogleCarrera('');
+    } else {
+      try {
+        googleLogin();
+      } catch (err) {
+        setShowGooglePopup(true);
+        setGooglePopupError('');
+        setGoogleEmail('');
+        setGoogleCarrera('');
+      }
+    }
+  };
+
+  const handleGooglePopupSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setGooglePopupError('');
+
+    const cleanEmail = googleEmail.trim().toLowerCase();
+    if (!cleanEmail || !emailRegex.test(cleanEmail)) {
+      setGooglePopupError('Ingrese un correo electrónico de Google válido');
+      return;
+    }
+
+    if (selectedRole === 'EGRESADO') {
+      if (!cleanEmail.endsWith('@unsa.edu.pe')) {
+        setGooglePopupError('Los egresados de la UNSA deben autenticarse con su correo institucional (@unsa.edu.pe)');
+        return;
+      }
+      if (!googleCarrera) {
+        setGooglePopupError('Debe seleccionar su carrera profesional');
+        return;
+      }
+    }
+
+    setShowGooglePopup(false);
+    setLoading(true);
+    simulateGoogleLogin(cleanEmail, selectedRole, googleCarrera);
+  };
+
+  const simulateGoogleLogin = (cleanEmail: string, role: RoleOption, carreraOverride?: string) => {
+    setTimeout(() => {
+      const localRaw = localStorage.getItem('mock_registered_users') || '[]';
+      let userExists = false;
+      let loggedUser: User | null = null;
+      try {
+        const localUsers = JSON.parse(localRaw);
+        loggedUser = localUsers.find((u: any) => u.email.toLowerCase() === cleanEmail && u.role === role);
+        if (loggedUser) userExists = true;
+      } catch {}
+
+      if (!userExists) {
+        let nameFromEmail = cleanEmail.split('@')[0].replace('.', ' ');
+        nameFromEmail = nameFromEmail.replace(/\b\w/g, c => c.toUpperCase());
+
+        loggedUser = {
+          id: `${role.toLowerCase()}_google_${Date.now()}`,
+          email: cleanEmail,
+          name: role === 'EGRESADO' 
+            ? nameFromEmail 
+            : (role === 'ADMIN' ? 'Administrador ODEEG' : 'Empresa por Completar'),
+          role: role,
+          carrera: role === 'EGRESADO' ? (carreraOverride || CARRERAS[0]) : undefined,
+          ruc: undefined,
+          contact_name: undefined,
+          rubro: undefined,
+          telefono: undefined,
+          skills: role === 'EGRESADO' ? ['TypeScript'] : [],
+          es_verificada: false,
+          es_baneada: false
+        };
+
+        try {
+          const list = JSON.parse(localRaw);
+          list.push(loggedUser);
+          localStorage.setItem('mock_registered_users', JSON.stringify(list));
+        } catch {}
+      }
+
+      const mockToken = `mock-token-${cleanEmail}-${role}`;
+      localStorage.setItem('user', JSON.stringify(loggedUser));
+      localStorage.setItem('token', mockToken);
+      onLogin(loggedUser!, mockToken);
+      setLoading(false);
+      navigate('/dashboard');
+    }, 1000);
+  };
+
+
+
+
 
   // Handle standard login form submit
   const handleLogin = async (e: React.FormEvent) => {
@@ -108,6 +210,7 @@ export default function Login({ onLogin }: LoginProps) {
       onLogin(result.user, result.token);
       navigate('/dashboard');
     } catch (err: any) {
+      console.error('API Error:', err);
       setError(err.message || 'Error al iniciar sesión');
     } finally {
       setLoading(false);
@@ -155,7 +258,8 @@ export default function Login({ onLogin }: LoginProps) {
         onLogin(result.user, result.token);
         navigate('/dashboard');
       } catch (err: any) {
-        setError(err.message || 'Error al registrarse');
+        console.error('API Error:', err);
+        setError(err.message || 'Error al registrar usuario');
       } finally {
         setLoading(false);
       }
@@ -202,7 +306,8 @@ export default function Login({ onLogin }: LoginProps) {
         onLogin(result.user, result.token);
         navigate('/dashboard');
       } catch (err: any) {
-        setError(err.message || 'Error al registrarse');
+        console.error('API Error:', err);
+        setError(err.message || 'Error al registrar empresa');
       } finally {
         setLoading(false);
       }
@@ -429,7 +534,7 @@ export default function Login({ onLogin }: LoginProps) {
 
                         <button
                           type="button"
-                          onClick={() => googleLogin()}
+                          onClick={handleGoogleClick}
                           className="w-full flex items-center justify-center gap-2 border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-2 rounded-xl text-xs transition-colors h-10 shadow-3xs bg-white"
                         >
                           <svg className="w-4 h-4 fill-current mr-1" viewBox="0 0 24 24">
@@ -540,7 +645,7 @@ export default function Login({ onLogin }: LoginProps) {
 
                             <button
                               type="button"
-                              onClick={() => googleLogin()}
+                              onClick={handleGoogleClick}
                               className="w-full flex items-center justify-center gap-2 border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-2 rounded-xl text-xs transition-colors h-10 shadow-3xs bg-white"
                             >
                               <svg className="w-4 h-4 fill-current mr-1" viewBox="0 0 24 24">
@@ -664,7 +769,7 @@ export default function Login({ onLogin }: LoginProps) {
 
                             <button
                               type="button"
-                              onClick={() => googleLogin()}
+                              onClick={handleGoogleClick}
                               className="w-full flex items-center justify-center gap-2 border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-2 rounded-xl text-xs transition-colors h-10 shadow-3xs bg-white"
                             >
                               <svg className="w-4 h-4 fill-current mr-1" viewBox="0 0 24 24">
@@ -687,7 +792,97 @@ export default function Login({ onLogin }: LoginProps) {
         </div>
       </div>
 
+      {/* MOCK GOOGLE LOGIN POPUP DIALOG */}
+      {showGooglePopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gray-50">
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                </svg>
+                <span className="font-bold text-gray-800 text-sm">Iniciar sesión con Google (Simulación)</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowGooglePopup(false)}
+                className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-150 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
+            <form onSubmit={handleGooglePopupSubmit} className="p-5 space-y-4">
+              {googlePopupError && (
+                <div className="p-3 bg-red-50 text-red-700 text-xs rounded-xl flex items-start gap-2 border border-red-100">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{googlePopupError}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Correo de Google
+                </label>
+                <input
+                  type="email"
+                  placeholder={selectedRole === 'EGRESADO' ? 'usuario@unsa.edu.pe' : 'usuario@gmail.com'}
+                  value={googleEmail}
+                  onChange={(e) => setGoogleEmail(e.target.value)}
+                  className="block w-full rounded-xl border border-gray-300 px-3 py-2 text-xs shadow-sm focus:outline-none h-10 bg-white"
+                  required
+                />
+                {selectedRole === 'EGRESADO' && (
+                  <p className="mt-1 text-[10px] text-gray-500">
+                    * Debe terminar en @unsa.edu.pe
+                  </p>
+                )}
+              </div>
+
+              {selectedRole === 'EGRESADO' && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Carrera Profesional
+                  </label>
+                  <select
+                    value={googleCarrera}
+                    onChange={(e) => setGoogleCarrera(e.target.value as any)}
+                    className="block w-full rounded-xl border border-gray-300 px-3 py-2 text-xs shadow-sm focus:outline-none h-10 bg-white"
+                    required
+                  >
+                    <option value="">Seleccione su carrera...</option>
+                    {CARRERAS.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="pt-2 flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setShowGooglePopup(false)}
+                  className="h-10 text-xs px-4"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  className="h-10 text-xs px-4 bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Confirmar Acceso
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

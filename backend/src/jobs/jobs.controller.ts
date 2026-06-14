@@ -29,7 +29,7 @@ export class JobsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('EGRESADO')
   async getMatched(@Req() req: any) {
-    return this.jobsService.findByCareer(req.user.carrera);
+    return this.jobsService.findMatched(req.user.sub, req.user.carrera);
   }
 
   @Get('pending')
@@ -60,5 +60,12 @@ export class JobsController {
       req.user.sub,
       req.user.role as UserRole,
     );
+  }
+
+  @Post(':id/apply')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('EGRESADO')
+  async apply(@Param('id') id: string, @Req() req: any) {
+    return this.jobsService.applyJob(id, req.user.sub);
   }
 }

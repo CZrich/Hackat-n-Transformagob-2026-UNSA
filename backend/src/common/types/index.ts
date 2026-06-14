@@ -10,6 +10,11 @@ export interface User {
   carrera?: string;
   telefono?: string;
   created_at?: string;
+  ruc?: string;
+  rubro?: string;
+  es_verificada?: boolean;
+  es_baneada?: boolean;
+  contact_name?: string;
 }
 
 export interface Job {

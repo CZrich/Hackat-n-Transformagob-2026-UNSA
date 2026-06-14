@@ -19,6 +19,7 @@ export interface User {
   total_votos?: number;
   cv_url?: string;
   cv_name?: string;
+  bio?: string;
 }
 
 export interface Job {
@@ -41,7 +42,8 @@ export interface Job {
   funciones?: string;
   informacion_adicional?: string;
   horario?: string;
-  postulantes?: string[]; // array of egresado user IDs
+  postulantes?: string[]; // deprecated
+  applications?: { userId: string; status: string; user?: User }[];
   rating_empresa?: number;
 }
 

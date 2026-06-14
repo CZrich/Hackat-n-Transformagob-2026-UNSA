@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Param, UseGuards, Body } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -18,5 +18,10 @@ export class AdminController {
   @Patch('companies/:id/verify')
   verifyCompany(@Param('id') id: string) {
     return this.adminService.verifyCompany(id);
+  }
+
+  @Patch('companies/:id/ban')
+  banCompany(@Param('id') id: string, @Body('es_baneada') esBaneada: boolean) {
+    return this.adminService.banCompany(id, esBaneada);
   }
 }

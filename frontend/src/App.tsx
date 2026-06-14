@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
@@ -6,6 +7,8 @@ import Login from './pages/Login';
 import DashboardEgresado from './pages/DashboardEgresado';
 import DashboardEmpleador from './pages/DashboardEmpleador';
 import DashboardAdmin from './pages/DashboardAdmin';
+
+const queryClient = new QueryClient();
 
 export default function App() {
   const { user, loading, login, logout } = useAuth();
@@ -20,17 +23,20 @@ export default function App() {
 
   if (!user) {
     return (
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login onLogin={login} />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </BrowserRouter>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<Login onLogin={login} />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </QueryClientProvider>
     );
   }
 
   return (
-    <BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
       <Routes>
         <Route element={<Layout user={user} onLogout={logout} onLogin={login} />}>
           <Route
@@ -68,6 +74,7 @@ export default function App() {
         <Route path="/login" element={<Login onLogin={login} />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
-    </BrowserRouter>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 }

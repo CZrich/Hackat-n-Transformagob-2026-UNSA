@@ -23,7 +23,7 @@ import {
 import { jobFormSchema } from '../schemas';
 import { CARRERAS } from '../config';
 import { useJobs } from '../hooks/useJobs';
-import { getEgresadosLocal } from '../services/mockDb';
+// import { getEgresadosLocal } from '../services/mockDb';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
@@ -61,9 +61,10 @@ function statusBadge(status: Job['status']) {
 }
 
 export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
-  const { jobs, loading, error, fetchMyHistory, createJob } = useJobs();
+  const { historyQuery, createJob } = useJobs();
+  const { data: jobs = [], isLoading: loading, error } = historyQuery;
   const [showForm, setShowForm] = useState(false);
-  const [egresados, setEgresados] = useState<User[]>([]);
+
   const [expandedJobApplicants, setExpandedJobApplicants] = useState<Record<string, boolean>>({});
 
   // Check if profile is incomplete (e.g. registered via Google and has no corporate fields yet)
@@ -104,14 +105,7 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
   const [submitting, setSubmitting] = useState(false);
   const [cvFeedback, setCvFeedback] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Only fetch history if the profile is activated and complete
-    if (!isProfileIncomplete) {
-      fetchMyHistory();
-      // Load egresados list to cross-reference applicants
-      setEgresados(getEgresadosLocal());
-    }
-  }, [fetchMyHistory, isProfileIncomplete]);
+
 
   const handleCompleteSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -459,7 +453,7 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
       {error && (
         <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-red-800 text-sm shadow-sm">
           <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-600" />
-          <span className="font-medium">{error}</span>
+          <span className="font-medium">{error.message}</span>
         </div>
       )}
 
@@ -793,7 +787,7 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
         ) : (
           <div className="grid grid-cols-1 gap-5">
             {jobs.map((job) => {
-              const hasApplicants = job.postulantes && job.postulantes.length > 0;
+              const hasApplicants = job.applications && job.applications.length > 0;
               const isExpanded = !!expandedJobApplicants[job.id];
 
               return (
@@ -861,7 +855,7 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
                     <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                       <div className="flex items-center gap-1 text-xs text-gray-500 font-medium">
                         <Users className="w-4 h-4 text-gray-400" />
-                        <span>{job.postulantes?.length || 0} Egresado{(job.postulantes?.length || 0) !== 1 ? 's' : ''} postulando</span>
+                        <span>{job.applications?.length || 0} Egresado{(job.applications?.length || 0) !== 1 ? 's' : ''} postulando</span>
                       </div>
                       
                       <button
@@ -892,15 +886,15 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
                           </div>
                         ) : (
                           <div className="space-y-3">
-                            {job.postulantes?.map(applicantId => {
-                              const profile = egresados.find(e => e.id === applicantId);
+                            {job.applications?.map(app => {
+                              const profile = app.user;
                               if (!profile) return null;
 
-                              const matchScore = getMatchPercentage(profile.skills, job.competencias);
+                              const matchScore = getMatchPercentage(profile.skills || [], job.competencias);
 
                               return (
                                 <div 
-                                  key={applicantId}
+                                  key={app.userId}
                                   className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-3xs"
                                 >
                                   <div className="space-y-2 flex-grow">

@@ -41,6 +41,13 @@ export class AuthService {
     carrera: string | null;
     telefono: string | null;
     created_at: Date;
+    company?: {
+      ruc: string;
+      name: string;
+      rubro: string;
+      es_verificada: boolean;
+      es_baneada: boolean;
+    } | null;
   }): User {
     return {
       id: user.id,
@@ -50,11 +57,21 @@ export class AuthService {
       carrera: user.carrera ?? undefined,
       telefono: user.telefono ?? undefined,
       created_at: user.created_at.toISOString(),
+      ...(user.company && {
+        ruc: user.company.ruc,
+        rubro: user.company.rubro,
+        es_verificada: user.company.es_verificada,
+        es_baneada: user.company.es_baneada,
+        contact_name: user.name,
+      }),
     };
   }
 
   async login(email: string, password: string): Promise<{ user: User; token: string }> {
-    const user = await this.prisma.user.findUnique({ where: { email } });
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+      include: { company: true },
+    });
     if (!user || !user.password) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
@@ -96,8 +113,9 @@ export class AuthService {
       },
     });
 
+    let createdCompany = null;
     if (data.role === 'EMPLEADOR' && data.ruc) {
-      await this.prisma.company.create({
+      createdCompany = await this.prisma.company.create({
         data: {
           ruc: data.ruc,
           name: data.name,
@@ -110,7 +128,7 @@ export class AuthService {
     }
 
     const token = this.signToken(user);
-    return { user: this.mapUser(user), token };
+    return { user: this.mapUser({ ...user, company: createdCompany }), token };
   }
 
   async googleLogin(googleToken: string): Promise<{ user: User; token: string }> {
@@ -146,19 +164,11 @@ export class AuthService {
       }
     }
 
-    const isEmailAllowed =
-      payload.email.endsWith(config.allowedDomain) || payload.email.endsWith('@gmail.com');
-    if (!isEmailAllowed) {
-      throw new UnauthorizedException(
-        `El correo debe pertenecer al dominio ${config.allowedDomain}`,
-      );
-    }
-
     const role: UserRole = payload.email.endsWith(config.allowedDomain) ? 'EGRESADO' : 'EMPLEADOR';
 
-    let user = await this.usersService.findByEmail(payload.email);
+    let user: any = await this.usersService.findByEmail(payload.email);
     if (!user) {
-      user = await this.prisma.user.create({
+      const newUser = await this.prisma.user.create({
         data: {
           email: payload.email,
           name: payload.name,
@@ -168,6 +178,22 @@ export class AuthService {
           skills: [],
         },
       });
+
+      let company = null;
+      if (role === 'EMPLEADOR') {
+        company = await this.prisma.company.create({
+          data: {
+            ruc: `TEMP-${Date.now()}`, // Temporary RUC that they will replace during onboarding complete
+            name: payload.name,
+            rubro: 'No especificado',
+            direccion: '',
+            horario: null,
+            userId: newUser.id,
+          },
+        });
+      }
+
+      user = { ...newUser, company };
     }
 
     const token = this.signToken(user);

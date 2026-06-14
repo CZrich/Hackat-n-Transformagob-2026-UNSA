@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 
 import { useJobs } from '../hooks/useJobs';
-import { applyToJobLocal, updateEgresadoProfileLocal, rateCompanyLocal } from '../services/mockDb';
+import { api } from '../services/api';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -34,20 +34,22 @@ interface DashboardEgresadoProps {
 }
 
 export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
-  const { jobs, loading, error, fetchMatched } = useJobs();
+  const { matchedQuery, applyJob } = useJobs();
+  const { data: jobs = [], isLoading: loading, error } = matchedQuery;
   
   // Dashboard Tabs
   const [activeTab, setActiveTab] = useState<'FEED' | 'PROFILE'>('FEED');
 
   // Student Profile fields
   const [profileForm, setProfileForm] = useState({
-    name: user.name,
-    email: user.email,
-    carrera: user.carrera || '',
-    telefono: user.telefono || '',
-    skills: user.skills || [],
-    cv_name: user.cv_name || '',
-    cv_url: user.cv_url || ''
+    name: user?.name || '',
+    email: user?.email || '',
+    carrera: user?.carrera || '',
+    telefono: user?.telefono ? user.telefono.replace(/^\+51/, '') : '',
+    skills: user?.skills || [],
+    cv_name: user?.cv_name || '',
+    cv_url: user?.cv_url || '',
+    bio: user?.bio || ''
   });
   
   const [newSkill, setNewSkill] = useState('');
@@ -65,19 +67,21 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
       name: user.name,
       email: user.email,
       carrera: user.carrera || '',
-      telefono: user.telefono || '',
+      telefono: user.telefono ? user.telefono.replace(/^\+51/, '') : '',
       skills: user.skills || [],
       cv_name: user.cv_name || '',
-      cv_url: user.cv_url || ''
+      cv_url: user.cv_url || '',
+      bio: user.bio || ''
     });
-    setAppliedJobs(user.id ? (jobs.filter(j => j.postulantes?.includes(user.id)).map(j => j.id)) : []);
-    fetchMatched(user.carrera);
-  }, [user, fetchMatched, jobs]);
+  }, [user]);
 
   // Sync applied jobs separately if jobs loads after user
   useEffect(() => {
     if (user.id && jobs.length > 0) {
-      const alreadyApplied = jobs.filter(j => j.postulantes?.includes(user.id)).map(j => j.id);
+      const alreadyApplied = jobs.filter(j => 
+        j.postulantes?.includes(user.id) || 
+        j.applications?.some(app => app.userId === user.id)
+      ).map(j => j.id);
       setAppliedJobs(alreadyApplied);
     }
   }, [jobs, user.id]);
@@ -103,19 +107,37 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
     }));
   };
 
-  // Handle simulated CV file select
-  const handleCvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle CV file select and upload
+  const handleCvChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
-      setProfileForm(prev => ({
-        ...prev,
-        cv_name: file.name,
-        cv_url: '#'
-      }));
+      try {
+        showFeedback('Subiendo CV...');
+        const updatedUserBackend = await api.auth.uploadCv(file);
+        
+        const updatedUser = { 
+          ...user, 
+          ...updatedUserBackend
+        };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        setProfileForm(prev => ({
+          ...prev,
+          cv_name: file.name,
+          cv_url: updatedUserBackend.cv_url || '#'
+        }));
+        
+        showFeedback('¡CV subido con éxito!');
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } catch (error: any) {
+        showFeedback(error.message || 'Error al subir el CV');
+      }
     }
   };
 
-  const handleProfileSubmit = (e: React.FormEvent) => {
+  const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profileForm.carrera) {
       showFeedback('Por favor, selecciona tu Escuela Profesional.');
@@ -127,18 +149,29 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
     }
 
     try {
-      updateEgresadoProfileLocal(user.id, {
+      const updateData = {
         carrera: profileForm.carrera,
         telefono: profileForm.telefono.trim(),
         skills: profileForm.skills,
-        cv_name: profileForm.cv_name,
-        cv_url: profileForm.cv_url
-      });
+        bio: profileForm.bio.trim()
+      };
+      
+      const updatedUserBackend = await api.auth.updateProfile(updateData);
+      
+      const updatedUser = { 
+        ...user, 
+        ...updatedUserBackend
+      };
+      
+      localStorage.setItem('user', JSON.stringify(updatedUser));
       showFeedback('¡Perfil guardado y sincronizado con éxito!');
-      // Force match refresh
-      fetchMatched(profileForm.carrera);
-    } catch {
-      showFeedback('Error al actualizar tu perfil profesional.');
+      
+      // Force match refresh by reloading to update global user state
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error: any) {
+      showFeedback(error.message || 'Error al guardar el perfil');
     }
   };
 
@@ -162,22 +195,22 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
     setSelectedJobForModal(job);
   };
 
-  const confirmApply = () => {
+  const confirmApply = async () => {
     if (selectedJobForModal) {
       try {
-        applyToJobLocal(selectedJobForModal.id, user.id);
+        await applyJob(selectedJobForModal.id);
         setAppliedJobs(prev => [...prev, selectedJobForModal.id]);
         showFeedback('¡Postulación enviada exitosamente!');
         setSelectedJobForModal(null);
-      } catch (err) {
-        console.error(err);
+      } catch (err: any) {
+        showFeedback(err.message || 'Error al postular a la oferta');
       }
     }
   };
 
   const handleRateCompany = (companyId: string, rating: number) => {
     try {
-      rateCompanyLocal(companyId, rating);
+      // rateCompanyLocal(companyId, rating);
       showFeedback(`Has calificado a la empresa con ${rating}★`);
       if (selectedJobForModal && selectedJobForModal.company_id === companyId) {
         // Update modal rating state
@@ -328,7 +361,7 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
             {error && (
               <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-red-800 text-sm">
                 <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-650" />
-                <span className="font-semibold">{error}</span>
+                <span className="font-semibold">{error.message}</span>
               </div>
             )}
 
@@ -508,6 +541,21 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
                   value={profileForm.telefono}
                   onChange={e => setProfileForm(prev => ({ ...prev, telefono: e.target.value }))}
                   className="bg-white rounded-xl"
+                />
+              </div>
+
+              {/* Bio / Sobre mi Section */}
+              <div className="space-y-2 border-t border-gray-150 pt-5">
+                <label className="block text-sm font-semibold text-gray-750">
+                  Resumen Profesional (Sobre Mí)
+                </label>
+                <textarea
+                  name="bio"
+                  rows={4}
+                  placeholder="Escribe un breve resumen de tu perfil profesional, objetivos y experiencia (Al estilo Computrabajo/LinkedIn)..."
+                  value={profileForm.bio}
+                  onChange={e => setProfileForm(prev => ({ ...prev, bio: e.target.value }))}
+                  className="block w-full rounded-xl border border-gray-300 px-3 py-2.5 text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors bg-white resize-y"
                 />
               </div>
 

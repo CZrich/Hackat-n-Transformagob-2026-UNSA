@@ -1,13 +1,19 @@
 import { PrismaClient } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
   const adminEmail = 'odeeg@unsa.edu.pe';
+  const hashedPassword = await bcrypt.hash('admin123', 10);
 
   const existing = await prisma.user.findUnique({ where: { email: adminEmail } });
   if (existing) {
-    console.log('Admin ODEEG ya existe, saltando seed.');
+    await prisma.user.update({
+      where: { email: adminEmail },
+      data: { password: hashedPassword },
+    });
+    console.log('Admin ODEEG ya existe, contraseña actualizada a formato hasheado.');
     return;
   }
 
@@ -16,7 +22,7 @@ async function main() {
       email: adminEmail,
       name: 'Administrador ODEEG',
       role: 'ADMIN',
-      password: 'admin123',
+      password: hashedPassword,
       telefono: '958473621',
       skills: [],
     },

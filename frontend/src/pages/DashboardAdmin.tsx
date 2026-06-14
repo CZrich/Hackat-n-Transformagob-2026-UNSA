@@ -9,11 +9,8 @@ import {
   Search,
   ThumbsDown
 } from 'lucide-react';
-import { 
-  getCompaniesLocal, 
-  updateCompanyVerificationLocal, 
-  updateCompanyBanLocal 
-} from '../services/mockDb';
+
+import { api } from '../services/api';
 import type { User } from '../types';
 import Button from '../components/ui/Button';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
@@ -25,13 +22,27 @@ export default function DashboardAdmin() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
-  const loadCompanies = useCallback(() => {
+  const loadCompanies = useCallback(async () => {
     setLoading(true);
     try {
-      const list = getCompaniesLocal();
-      setCompanies(list);
+      const list = await api.admin.listCompanies();
+      const mapped = list.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        role: 'EMPLEADOR' as const,
+        rubro: c.rubro,
+        ruc: c.ruc,
+        es_verificada: c.es_verificada,
+        es_baneada: c.es_baneada,
+        email: c.user?.email || '',
+        telefono: c.user?.telefono || '',
+        contact_name: c.user?.name || '',
+        rating_promedio: c.rating_promedio || 5.0,
+      }));
+      setCompanies(mapped);
     } catch (err) {
-      console.error('Error cargando empresas:', err);
+      console.error('API Error cargando empresas:', err);
+      setCompanies([]);
     } finally {
       setLoading(false);
     }
@@ -41,22 +52,24 @@ export default function DashboardAdmin() {
     loadCompanies();
   }, [loadCompanies]);
 
-  const handleVerifyToggle = (companyId: string, currentStatus: boolean) => {
+  const handleVerifyToggle = async (companyId: string, currentStatus: boolean) => {
     try {
-      updateCompanyVerificationLocal(companyId, !currentStatus);
+      await api.admin.verifyCompany(companyId);
       showTemporaryMessage(`Empresa ${!currentStatus ? 'VERIFICADA' : 'DESACTIVADA'} con éxito. Ofertas vinculadas actualizadas.`, 'success');
       loadCompanies();
-    } catch {
+    } catch (err) {
+      console.error('API Error verificando empresa:', err);
       showTemporaryMessage('Error al actualizar verificación.', 'error');
     }
   };
 
-  const handleBanToggle = (companyId: string, currentStatus: boolean) => {
+  const handleBanToggle = async (companyId: string, currentStatus: boolean) => {
     try {
-      updateCompanyBanLocal(companyId, !currentStatus);
+      await api.admin.banCompany(companyId, !currentStatus);
       showTemporaryMessage(`Empresa ${!currentStatus ? 'BANEADA y suspendida' : 'ACTIVADA'} con éxito.`, 'success');
       loadCompanies();
-    } catch {
+    } catch (err) {
+      console.error('API Error baneando empresa:', err);
       showTemporaryMessage('Error al actualizar ban.', 'error');
     }
   };
