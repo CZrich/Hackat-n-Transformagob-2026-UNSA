@@ -100,6 +100,14 @@ export class JobsService {
       include: {
         applications: {
           where: { userId }
+        },
+        company: {
+          select: {
+            name: true,
+            rubro: true,
+            contacto_email: true,
+            contacto_telefono: true,
+          }
         }
       }
     });

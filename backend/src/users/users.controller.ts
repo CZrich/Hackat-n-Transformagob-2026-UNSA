@@ -22,6 +22,12 @@ export class UsersController {
     return this.usersService.findById(id);
   }
 
+  @Get('profile')
+  @UseGuards(JwtAuthGuard)
+  async getProfile(@Req() req: any) {
+    return this.usersService.findById(req.user.sub);
+  }
+
   @Put('profile')
   @UseGuards(JwtAuthGuard)
   async updateProfile(@Req() req: any, @Body() body: any) {

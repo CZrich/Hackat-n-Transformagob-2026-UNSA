@@ -74,6 +74,8 @@ export class UsersService {
     rubro?: string;
     direccion?: string;
     horario?: string;
+    contacto_telefono?: string;
+    contacto_email?: string;
     cv_name?: string;
     cv_url?: string;
     bio?: string;
@@ -108,6 +110,8 @@ export class UsersService {
           ...(data.rubro && { rubro: data.rubro }),
           ...(data.direccion !== undefined ? { direccion: data.direccion } : {}),
           ...(data.horario !== undefined ? { horario: data.horario } : {}),
+          ...(data.contacto_telefono !== undefined ? { contacto_telefono: data.contacto_telefono } : {}),
+          ...(data.contacto_email !== undefined ? { contacto_email: data.contacto_email } : {}),
         },
         create: {
           ruc: data.ruc || `TEMP-${Date.now()}`,
@@ -115,6 +119,8 @@ export class UsersService {
           rubro: data.rubro || 'No especificado',
           direccion: data.direccion || '',
           horario: data.horario || '',
+          contacto_telefono: data.contacto_telefono || '',
+          contacto_email: data.contacto_email || '',
           userId,
         },
       });
@@ -155,7 +161,10 @@ export class UsersService {
       });
     }
 
-    return updatedUser;
+    return this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { company: true, profile: true },
+    });
   }
 
   async updateGraduateProfile(userId: string, data: {

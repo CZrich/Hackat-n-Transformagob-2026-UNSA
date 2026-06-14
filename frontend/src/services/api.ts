@@ -65,6 +65,9 @@ export const api = {
         body: data,
       }),
 
+    getProfile: () =>
+      request<User>('/api/users/profile'),
+
     updateProfile: (data: Partial<User>) =>
       request<User>('/api/users/profile', {
         method: 'PUT',

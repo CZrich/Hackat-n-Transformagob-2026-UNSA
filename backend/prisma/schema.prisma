@@ -48,20 +48,22 @@ model User {
 }
 
 model Company {
-  id            String          @id @default(uuid())
-  ruc           String          @unique
-  name          String
-  rubro         String
-  direccion     String
-  horario       String?
-  es_verificada Boolean         @default(false)
-  es_baneada    Boolean         @default(false)
-  userId        String          @unique
-  user          User            @relation(fields: [userId], references: [id])
-  jobs          Job[]
-  ratings       CompanyRating[]
-  rating_promedio Float         @default(0)
-  total_votos     Int           @default(0)
+  id              String          @id @default(uuid())
+  ruc             String          @unique
+  name            String
+  rubro           String
+  direccion       String
+  horario         String?
+  contacto_telefono String?
+  contacto_email  String?
+  es_verificada   Boolean         @default(false)
+  es_baneada      Boolean         @default(false)
+  userId          String          @unique
+  user            User            @relation(fields: [userId], references: [id])
+  jobs            Job[]
+  ratings         CompanyRating[]
+  rating_promedio Float           @default(0)
+  total_votos     Int             @default(0)
 }
 
 model CompanyRating {

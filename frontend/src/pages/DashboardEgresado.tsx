@@ -113,12 +113,13 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
           });
         }
         setMyRatings(ratings);
-      } catch {
-        // fallback preserve existing form
+        console.log('GP loaded from API:', gp);
+      } catch (err) {
+        console.error('Error loading graduate profile, using login data:', err);
         setProfileForm(prev => ({
           ...prev,
-          carrera: prev.carrera || '',
-          telefono: prev.telefono || '',
+          carrera: user.carrera || prev.carrera || '',
+          telefono: user.telefono || prev.telefono || '',
         }));
       }
     };
@@ -172,7 +173,6 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
         }));
 
         showFeedback('¡CV subido con éxito!');
-        setTimeout(() => window.location.reload(), 1500);
       } catch (error: any) {
         showFeedback(error.message || 'Error al subir el CV');
       }
@@ -192,23 +192,47 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
 
     setSavingProfile(true);
     try {
-      await api.graduateProfile.update({
+      const payload: Record<string, any> = {
         carrera: profileForm.carrera,
         telefono: profileForm.telefono.trim(),
         skills: profileForm.skills,
+      };
+      for (const [key, value] of Object.entries({
         cv_name: profileForm.cv_name,
         cv_url: profileForm.cv_url,
-        bio: profileForm.bio.trim(),
-        education: profileForm.education.trim(),
-        experience: profileForm.work_experience.trim(),
-        certifications: profileForm.certifications.trim(),
-        languages: profileForm.languages.trim(),
-        linkedin_url: profileForm.linkedin_url.trim(),
-        portfolio_url: profileForm.portfolio_url.trim(),
-      });
+        bio: profileForm.bio,
+        education: profileForm.education,
+        experience: profileForm.work_experience,
+        certifications: profileForm.certifications,
+        languages: profileForm.languages,
+        linkedin_url: profileForm.linkedin_url,
+        portfolio_url: profileForm.portfolio_url,
+      })) {
+        if (value) payload[key] = value.trim();
+      }
+
+      await api.graduateProfile.update(payload as any);
+
+      const updated = await api.graduateProfile.get();
+      if (updated) {
+        setProfileForm(prev => ({
+          ...prev,
+          carrera: updated.carrera || prev.carrera,
+          telefono: updated.telefono ? updated.telefono.replace(/^\+51/, '') : prev.telefono,
+          skills: updated.skills || prev.skills,
+          cv_name: updated.cv_name || prev.cv_name,
+          cv_url: updated.cv_url || prev.cv_url,
+          bio: updated.bio || prev.bio,
+          linkedin_url: updated.linkedin_url || prev.linkedin_url,
+          portfolio_url: updated.portfolio_url || prev.portfolio_url,
+          education: updated.education || prev.education,
+          work_experience: updated.experience || prev.work_experience,
+          certifications: updated.certifications || prev.certifications,
+          languages: updated.languages || prev.languages,
+        }));
+      }
 
       showFeedback('¡Perfil guardado y sincronizado con éxito!');
-      setTimeout(() => window.location.reload(), 1000);
     } catch (error: any) {
       showFeedback(error.message || 'Error al guardar el perfil');
     } finally {
@@ -652,6 +676,11 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
                             <span className="flex items-center gap-1">
                               <Calendar className="w-3 h-3 text-gray-400" /> {new Date(app.created_at).toLocaleDateString('es-PE')}
                             </span>
+                            {(job as any).company?.contacto_email && (
+                              <span className="flex items-center gap-1 text-blue-700 font-semibold">
+                                Contacto: {(job as any).company.contacto_email}
+                              </span>
+                            )}
                           </div>
                           {job.competencias && job.competencias.length > 0 && (
                             <div className="flex flex-wrap gap-1 pt-1">
@@ -932,6 +961,22 @@ export default function DashboardEgresado({ user }: DashboardEgresadoProps) {
                   <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4 text-gray-400" /> Cierre: {selectedJobForModal.fecha_cierre ? new Date(selectedJobForModal.fecha_cierre + 'T23:59:59').toLocaleDateString('es-PE') : 'N/R'}</span>
                   <span className="flex items-center gap-1.5"><Clock className="w-4 h-4 text-gray-400" /> {selectedJobForModal.horario || 'N/R'}</span>
                 </div>
+
+                {(selectedJobForModal as any).company?.contacto_email || (selectedJobForModal as any).company?.contacto_telefono ? (
+                  <div className="px-3 py-2 bg-blue-50/50 border border-blue-100 rounded-lg text-xs">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Contacto de la Empresa</p>
+                    {(selectedJobForModal as any).company?.contacto_email && (
+                      <p className="text-blue-800 font-semibold">Email: {(selectedJobForModal as any).company.contacto_email}</p>
+                    )}
+                    {(selectedJobForModal as any).company?.contacto_telefono && (
+                      <p className="text-blue-800 font-semibold">Teléfono: {(selectedJobForModal as any).company.contacto_telefono}</p>
+                    )}
+                  </div>
+                ) : selectedJobForModal.company_name && (
+                  <div className="px-3 py-2 bg-gray-50 border border-gray-150 rounded-lg text-xs text-gray-600 italic">
+                    Contacta a {selectedJobForModal.company_name} para más información.
+                  </div>
+                )}
               </div>
 
               {/* MATCH DETAIL SECTION */}

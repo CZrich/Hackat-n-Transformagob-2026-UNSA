@@ -39,34 +39,30 @@ export class AuthService {
     name: string;
     role: string;
     created_at: Date;
-    company?: {
-      ruc: string;
-      name: string;
-      rubro: string;
-      es_verificada: boolean;
-      es_baneada: boolean;
-    } | null;
+    company?: Record<string, any> | null;
+    profile?: Record<string, any> | null;
   }): Promise<User> {
-    let carrera: string | undefined;
-    let telefono: string | undefined;
-    if (user.role === 'EGRESADO') {
-      const profile = await this.prisma.graduateProfile.findUnique({ where: { userId: user.id } });
-      carrera = profile?.carrera ?? undefined;
-      telefono = profile?.telefono ?? undefined;
-    }
+    const p = user.profile;
+    const c = user.company;
     return {
       id: user.id,
       email: user.email,
       name: user.name,
       role: user.role as UserRole,
-      carrera,
-      telefono,
-      created_at: user.created_at.toISOString(),
-      ...(user.company && {
-        ruc: user.company.ruc,
-        rubro: user.company.rubro,
-        es_verificada: user.company.es_verificada,
-        es_baneada: user.company.es_baneada,
+      carrera: p?.carrera ?? undefined,
+      telefono: p?.telefono ?? undefined,
+      created_at: user.created_at instanceof Date ? user.created_at.toISOString() : String(user.created_at),
+      ...(c && {
+        ruc: c.ruc,
+        rubro: c.rubro,
+        direccion: c.direccion || undefined,
+        horario: c.horario || undefined,
+        contacto_telefono: c.contacto_telefono || undefined,
+        contacto_email: c.contacto_email || undefined,
+        es_verificada: c.es_verificada,
+        es_baneada: c.es_baneada,
+        rating_promedio: c.rating_promedio,
+        total_votos: c.total_votos,
         contact_name: user.name,
       }),
     };
@@ -75,7 +71,7 @@ export class AuthService {
   async login(email: string, password: string): Promise<{ user: User; token: string }> {
     const user = await this.prisma.user.findUnique({
       where: { email },
-      include: { company: true },
+      include: { company: true, profile: true },
     });
     if (!user || !user.password) {
       throw new UnauthorizedException('Credenciales inválidas');
@@ -145,35 +141,62 @@ export class AuthService {
   }
 
   async googleLogin(googleToken: string): Promise<{ user: User; token: string }> {
-    let payload: { email: string; name: string; sub: string };
+    let payload: { email: string; name: string; sub: string; picture?: string };
 
+    // Try userinfo endpoint (most reliable for getting name)
     try {
-      const ticket = await googleClient.verifyIdToken({
-        idToken: googleToken,
-        audience: config.google.clientId,
+      const infoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: { Authorization: `Bearer ${googleToken}` },
       });
-      const decoded = ticket.getPayload();
-      if (!decoded || !decoded.email) throw new Error('No se pudo obtener el email');
-      payload = {
-        email: decoded.email,
-        name: decoded.name || decoded.email.split('@')[0],
-        sub: decoded.sub,
-      };
+      if (infoRes.ok) {
+        const info = await infoRes.json();
+        console.log('=== GOOGLE USERINFO RESPONSE ===', JSON.stringify(info, null, 2));
+        if (info.email) {
+          payload = {
+            email: info.email,
+            name: info.name || info.email.split('@')[0],
+            sub: info.id || info.sub,
+            picture: info.picture,
+          };
+          console.log('=== GOOGLE LOGIN PAYLOAD ===', JSON.stringify(payload, null, 2));
+        } else {
+          throw new Error('No email in userinfo');
+        }
+      } else {
+        throw new Error('userinfo failed');
+      }
     } catch {
       try {
-        const response = await fetch(
-          `https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${googleToken}`,
-        );
-        if (!response.ok) throw new Error('Token inválido');
-        const data = await response.json();
-        if (!data.email) throw new Error('No se pudo obtener el email');
+        const ticket = await googleClient.verifyIdToken({
+          idToken: googleToken,
+          audience: config.google.clientId,
+        });
+        const decoded = ticket.getPayload();
+        if (!decoded || !decoded.email) throw new Error('No se pudo obtener el email');
+        console.log('=== GOOGLE ID TOKEN PAYLOAD ===', JSON.stringify(decoded, null, 2));
         payload = {
-          email: data.email,
-          name: (data as any).name || data.email.split('@')[0],
-          sub: data.sub,
+          email: decoded.email,
+          name: decoded.name || decoded.email.split('@')[0],
+          sub: decoded.sub,
+          picture: decoded.picture,
         };
       } catch {
-        throw new UnauthorizedException('Token de Google inválido o expirado');
+        try {
+          const response = await fetch(
+            `https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${googleToken}`,
+          );
+          if (!response.ok) throw new Error('Token inválido');
+          const data = await response.json();
+          if (!data.email) throw new Error('No se pudo obtener el email');
+          console.log('=== GOOGLE TOKENINFO ===', JSON.stringify(data, null, 2));
+          payload = {
+            email: data.email,
+            name: (data as any).name || data.email.split('@')[0],
+            sub: data.sub,
+          };
+        } catch {
+          throw new UnauthorizedException('Token de Google inválido o expirado');
+        }
       }
     }
 

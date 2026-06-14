@@ -14,8 +14,14 @@ export interface User {
   telefono?: string;
   ruc?: string;
   rubro?: string;
+  direccion?: string;
+  horario?: string;
+  contacto_telefono?: string;
+  contacto_email?: string;
   es_verificada?: boolean;
   es_baneada?: boolean;
+  rating_promedio?: number;
+  total_votos?: number;
   contact_name?: string;
 }
 

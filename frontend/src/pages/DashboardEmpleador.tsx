@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Plus,
   AlertCircle,
@@ -316,23 +316,47 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
     rubro: user?.company?.rubro || '',
     direccion: user?.company?.direccion || '',
     horario: user?.company?.horario || '',
-    telefono: user?.telefono || '',
+    contacto_telefono: '',
+    contacto_email: user?.email || '',
   });
   const [savingCompanyProfile, setSavingCompanyProfile] = useState(false);
+
+  useEffect(() => {
+    if (showProfile) {
+      api.auth.getProfile().then((u: any) => {
+        if (u?.company) {
+          setProfileForm({
+            name: u.company.name || '',
+            ruc: u.company.ruc || '',
+            rubro: u.company.rubro || '',
+            direccion: u.company.direccion || '',
+            horario: u.company.horario || '',
+            contacto_telefono: u.company.contacto_telefono || '',
+            contacto_email: u.company.contacto_email || u.email || '',
+          });
+        }
+      }).catch(() => {});
+    }
+  }, [showProfile]);
 
   const handleCompanyProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingCompanyProfile(true);
     try {
-      await api.auth.updateProfile({
+      const payload: Record<string, any> = {
         name: profileForm.name,
         ruc: profileForm.ruc,
         rubro: profileForm.rubro,
+      };
+      for (const [key, value] of Object.entries({
         direccion: profileForm.direccion,
         horario: profileForm.horario,
-        telefono: profileForm.telefono,
-      });
-      // Reload to reflect changes
+        contacto_telefono: profileForm.contacto_telefono,
+        contacto_email: profileForm.contacto_email,
+      })) {
+        if (value) payload[key] = value;
+      }
+      await api.auth.updateProfile(payload);
       window.location.reload();
     } catch (err: any) {
       alert(err.message || 'Error al guardar perfil');

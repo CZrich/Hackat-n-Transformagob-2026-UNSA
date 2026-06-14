@@ -15,6 +15,10 @@ export interface User {
   ruc?: string;
   contact_name?: string;
   rubro?: string;
+  direccion?: string;
+  horario?: string;
+  contacto_telefono?: string;
+  contacto_email?: string;
   es_verificada?: boolean;
   es_baneada?: boolean;
   rating_promedio?: number;
