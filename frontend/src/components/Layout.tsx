@@ -45,7 +45,7 @@ export default function Layout({ user, onLogout }: LayoutProps) {
               onClick={() => navigate('/dashboard')}
               className="flex items-center gap-2 text-xl font-black text-red-800"
             >
-              <GraduationCap className="w-7 h-7 text-red-700" />
+              <img src="/udeeg.jpeg" alt="Logo UDEG" className="w-8 h-8 rounded-lg object-cover border border-gray-200 bg-white" />
               <span>CONECTA UNSA</span>
             </button>
 

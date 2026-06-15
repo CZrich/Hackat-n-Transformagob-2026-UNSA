@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import {
   Plus,
   AlertCircle,
@@ -163,7 +164,7 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
       localStorage.setItem('user', JSON.stringify(updatedUser));
       window.location.reload();
     } catch (err: any) {
-      alert(err.message || 'Error al completar perfil');
+      toast.error(err.message || 'Error al completar perfil');
       setSavingProfile(false);
     }
   };
@@ -390,7 +391,7 @@ export default function DashboardEmpleador({ user }: DashboardEmpleadorProps) {
       localStorage.setItem('user', JSON.stringify(flattened));
       window.location.reload();
     } catch (err: any) {
-      alert(err.message || 'Error al guardar perfil');
+      toast.error(err.message || 'Error al guardar perfil');
     } finally {
       setSavingCompanyProfile(false);
     }

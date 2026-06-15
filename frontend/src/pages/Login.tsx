@@ -571,7 +571,7 @@ export default function Login({ onLogin }: LoginProps) {
                             </button>
                             <button
                               type="button"
-                              onClick={() => { setSelectedRole('ADMIN'); setEmail('admin@unsa.edu.pe'); setPassword('admin123'); }}
+                              onClick={() => { setSelectedRole('ADMIN'); setEmail('admin@unsa.edu.pe'); setPassword('123456'); }}
                               className="flex flex-col items-center justify-center py-2 px-1 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 transition-colors text-[10px] font-bold text-gray-600"
                             >
                               <Shield className="w-4 h-4 mb-1 text-gray-400" />

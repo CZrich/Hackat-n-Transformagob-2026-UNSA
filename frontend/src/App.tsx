@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from 'react-hot-toast';
 import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
@@ -24,6 +25,7 @@ export default function App() {
   if (!user) {
     return (
       <QueryClientProvider client={queryClient}>
+        <Toaster position="top-right" reverseOrder={false} />
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login onLogin={login} />} />
@@ -36,6 +38,7 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <Toaster position="top-right" reverseOrder={false} />
       <BrowserRouter>
       <Routes>
           <Route element={<Layout user={user} onLogout={logout} />}>

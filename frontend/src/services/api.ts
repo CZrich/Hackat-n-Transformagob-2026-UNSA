@@ -35,19 +35,49 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
   return response.json();
 }
 
+function mapBackendUser(u: any): User {
+  if (!u) return u;
+  const p = u.profile;
+  const c = u.company;
+  return {
+    id: u.id,
+    email: u.email,
+    name: u.name,
+    role: u.role,
+    created_at: u.created_at,
+    carrera: p?.carrera ?? u.carrera,
+    telefono: p?.telefono ?? u.telefono,
+    company: c,
+    profile: p,
+    ...(c && {
+      ruc: c.ruc ?? u.ruc,
+      rubro: c.rubro ?? u.rubro,
+      direccion: c.direccion ?? u.direccion,
+      horario: c.horario ?? u.horario,
+      contacto_telefono: c.contacto_telefono ?? u.contacto_telefono ?? c.telefono ?? u.telefono,
+      contacto_email: c.contacto_email ?? u.contacto_email ?? u.email,
+      es_verificada: c.es_verificada ?? u.es_verificada,
+      es_baneada: c.es_baneada ?? u.es_baneada,
+      rating_promedio: c.rating_promedio ?? u.rating_promedio,
+      total_votos: c.total_votos ?? u.total_votos,
+      contact_name: c.contact_name ?? u.contact_name ?? u.name,
+    }),
+  } as User;
+}
+
 export const api = {
   auth: {
     googleLogin: (token: string) =>
-      request<{ user: User; token: string }>('/api/auth/google-login', {
+      request<{ user: any; token: string }>('/api/auth/google-login', {
         method: 'POST',
         body: { token },
-      }),
+      }).then(res => ({ ...res, user: mapBackendUser(res.user) })),
 
     login: (email: string, password: string) =>
-      request<{ user: User; token: string }>('/api/auth/login', {
+      request<{ user: any; token: string }>('/api/auth/login', {
         method: 'POST',
         body: { email, password },
-      }),
+      }).then(res => ({ ...res, user: mapBackendUser(res.user) })),
 
     register: (data: {
       email: string;
@@ -60,19 +90,19 @@ export const api = {
       contact_name?: string;
       rubro?: string;
     }) =>
-      request<{ user: User; token: string }>('/api/auth/register', {
+      request<{ user: any; token: string }>('/api/auth/register', {
         method: 'POST',
         body: data,
-      }),
+      }).then(res => ({ ...res, user: mapBackendUser(res.user) })),
 
     getProfile: () =>
-      request<User>('/api/users/profile'),
+      request<any>('/api/users/profile').then(mapBackendUser),
 
     updateProfile: (data: Partial<User>) =>
-      request<User>('/api/users/profile', {
+      request<any>('/api/users/profile', {
         method: 'PUT',
         body: data,
-      }),
+      }).then(mapBackendUser),
 
     uploadCv: async (file: File) => {
       const token = getToken();
